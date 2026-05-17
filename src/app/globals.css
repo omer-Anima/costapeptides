@@ -1595,22 +1595,23 @@ body {
     
     .spreadsheet-table td {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-start;
         border: none;
         border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
-        padding: 10px 6px;
-        text-align: right;
+        padding: 12px 10px;
+        text-align: left;
         width: 100%;
         background: transparent !important;
         font-size: 0.85rem;
+        gap: 6px;
     }
     
     .spreadsheet-table td:last-child {
         border-bottom: none;
     }
     
-    /* Inject column data labels on the left dynamically */
+    /* Inject column data labels on the top dynamically */
     .spreadsheet-table td::before {
         content: attr(data-label);
         font-weight: 800;
@@ -1618,31 +1619,62 @@ body {
         text-transform: uppercase;
         font-size: 0.7rem;
         text-align: left;
-        margin-right: 12px;
+        margin-right: 0;
         flex-shrink: 0;
     }
     
-    /* Center align editable cells and select boxes on mobile */
+    /* Full width for editable cells and select boxes on mobile */
     .spreadsheet-table td .cell-editable {
-        justify-content: flex-end;
-        text-align: right;
+        justify-content: flex-start;
+        text-align: left;
         border: 1px solid rgba(255, 255, 255, 0.05);
         background: rgba(255, 255, 255, 0.02);
-        padding: 4px 8px;
+        padding: 8px 12px;
         border-radius: 6px;
-        min-width: 140px;
-        max-width: 220px;
+        width: 100%;
+        max-width: 100%;
+        min-height: 38px;
     }
     
     .spreadsheet-table td .cell-select {
-        max-width: 220px;
-        text-align-last: right;
-        padding-right: 8px;
+        width: 100%;
+        max-width: 100%;
+        text-align-last: left;
+        padding: 8px 12px;
+        min-height: 38px;
     }
     
     .spreadsheet-table td .admin-image-cell {
-        justify-content: flex-end;
-        max-width: 220px;
+        justify-content: flex-start;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    /* Admin Navbar Mobile Overhaul */
+    .admin-navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px;
+        gap: 12px;
+    }
+    
+    .admin-nav-logo {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .admin-nav-actions {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        display: flex;
+        gap: 8px;
+    }
+    
+    .admin-tab-btn {
+        white-space: nowrap;
+        padding: 8px 12px;
+        font-size: 0.8rem;
     }
     
     /* Toolbar spacing optimizations */
