@@ -267,7 +267,7 @@ export default function AdminPage() {
   const handleAddRow = () => {
     const newPriority = products.length > 0 ? Math.max(...products.map(p => p.priority)) + 1 : 0;
     const newRow = {
-      id: `new-${Date.now()}`,
+      id: `temp-${Date.now()}`,
       product: 'New Peptide Name',
       category: 'Weight Loss & Metabolism',
       priceUsd: '$100',

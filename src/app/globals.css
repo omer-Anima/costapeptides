@@ -1652,13 +1652,15 @@ body {
     }
     
     .admin-actions-row {
+        flex-direction: column;
         gap: 8px;
     }
     
     .admin-actions-row button {
-        flex: 1;
+        width: 100%;
         justify-content: center;
-        padding: 10px;
+        padding: 14px;
+        font-size: 0.9rem;
     }
 }
 
