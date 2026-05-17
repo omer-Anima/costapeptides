@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
+import { useRouter } from 'next/navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { 
   Lock, LayoutDashboard, ListFilter, Plus, Trash2, 
@@ -29,6 +30,8 @@ const CATEGORY_TRANSLATIONS = {
 };
 
 export default function AdminPage() {
+  const router = useRouter();
+  
   // Authentication states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
@@ -254,6 +257,7 @@ export default function AdminPage() {
     setIsAuthenticated(false);
     setEmail('');
     setPassword('');
+    router.push('/');
   };
 
   // Spreadsheet Cell modification helper
