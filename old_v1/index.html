@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peptides Costa Rica | Catálogo Premium</title>
+    <meta name="description" content="Catálogo premium de péptidos para Peptides Costa Rica. Explore nuestra selección de alta calidad con precios y disponibilidad en tiempo real.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-top container">
+                <div class="theme-toggle">
+                    <button id="themeLight" title="Light Mode">☀️</button>
+                    <button id="themeDark" title="Dark Mode">🌙</button>
+                </div>
+                <div class="lang-selector">
+                    <button id="langEn">EN</button>
+                    <button id="langEs" class="active">ES</button>
+                </div>
+                <div class="currency-selector">
+                    <button id="toggleUSD">USD</button>
+                    <button id="toggleCRC" class="active">CRC</button>
+                </div>
+            </div>
+            
+            <div class="header-content container">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+                        <line x1="12" y1="28" x2="28" y2="24" stroke="#00D4FF" stroke-width="2" stroke-dasharray="0.5 2"/>
+                        <line x1="28" y1="24" x2="20" y2="10" stroke="#00D4FF" stroke-width="2" stroke-dasharray="0.5 2"/>
+                        <line x1="12" y1="28" x2="20" y2="10" stroke="#00D4FF" stroke-width="2" stroke-dasharray="0.5 2"/>
+                        
+                        <circle cx="12" cy="28" r="7" fill="rgba(0, 212, 255, 0.15)"/>
+                        <circle cx="28" cy="24" r="7" fill="rgba(0, 212, 255, 0.15)"/>
+                        <circle cx="20" cy="10" r="7" fill="rgba(0, 212, 255, 0.15)"/>
+
+                        <circle cx="12" cy="28" r="4" fill="#00A3C4" stroke="#FFFFFF" stroke-width="1.5"/>
+                        <circle cx="28" cy="24" r="4" fill="#00A3C4" stroke="#FFFFFF" stroke-width="1.5"/>
+                        <circle cx="20" cy="10" r="4" fill="#00A3C4" stroke="#FFFFFF" stroke-width="1.5"/>
+                    </svg>
+                    <h1>PEPTIDES</h1>
+                    <div class="logo-banner">COSTA RICA</div>
+                </div>
+            </div>
+            
+            <div class="search-bar container">
+                <div class="search-row">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Buscar productos...">
+                    </div>
+                    <button id="viewToggle" class="filter-btn" title="Cambiar Vista">
+                        <span>≣</span>
+                    </button>
+                    <button id="filterToggle" class="filter-btn" title="Filtros">
+                        <span>⚙️</span>
+                    </button>
+                </div>
+                
+                <div id="filterPanel" class="filter-panel">
+                    <div class="filter-group">
+                        <label id="labelPriceRange">Precio</label>
+                        <select id="priceFilter">
+                            <option value="all">Cualquier precio</option>
+                            <option value="low">Económicos</option>
+                            <option value="mid">Gama Media</option>
+                            <option value="high">Premium</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label id="labelSort">Ordenar</label>
+                        <select id="sortOrder">
+                            <option value="pop">Más populares</option>
+                            <option value="lowToHigh">Precio: Bajo a Alto</option>
+                            <option value="highToLow">Precio: Alto a Bajo</option>
+                        </select>
+                    </div>
+                    <div class="filter-group toggle-group">
+                        <label id="labelInStockOnly">Solo disponibles</label>
+                        <input type="checkbox" id="inStockOnly">
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="category-nav">
+                <div class="category-scroll container" id="categoryNav">
+                    <button class="cat-chip active" data-category="all">Todos los Productos</button>
+                    <!-- Categorías inyectadas por JS -->
+                </div>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main container">
+            <div id="productGrid" class="product-grid">
+                <!-- Productos inyectados por JS -->
+                <div class="loader">Cargando catálogo...</div>
+            </div>
+        </main>
+
+        <!-- Product Modal -->
+        <div id="productModal" class="modal">
+            <div class="modal-content">
+                <button class="close-modal">&times;</button>
+                <div id="modalBody"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2026 Peptides Costa Rica. Péptidos de investigación de alta calidad.</p>
+                <div class="footer-links">
+                    <a href="#" id="viewHowToOrder">Cómo Ordenar</a>
+                    <a href="https://wa.me/50684046973" target="_blank">Contactar WhatsApp</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
