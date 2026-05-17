@@ -456,8 +456,11 @@ export default function AdminPage() {
         const { error: deleteError } = await deleteQuery;
         if (deleteError) throw deleteError;
 
-        // 2. Format row fields for upserting
-        const formatted = products.map((p, idx) => {
+        // 2. Format row fields
+        const itemsToUpdate = [];
+        const itemsToInsert = [];
+
+        products.forEach((p, idx) => {
           const row = {
             product: p.product,
             category: p.category,
@@ -472,16 +475,27 @@ export default function AdminPage() {
           };
           if (p.id && !p.id.toString().startsWith('temp-') && !p.id.toString().startsWith('local-')) {
             row.id = p.id;
+            itemsToUpdate.push(row);
+          } else {
+            itemsToInsert.push(row);
           }
-          return row;
         });
 
-        // 3. Batch upsert (inserts new records, updates existing ones in-place)
-        const { error: upsertError } = await supabase
-          .from('products')
-          .upsert(formatted);
+        // 3. Batch upsert existing records
+        if (itemsToUpdate.length > 0) {
+          const { error: upsertError } = await supabase
+            .from('products')
+            .upsert(itemsToUpdate);
+          if (upsertError) throw upsertError;
+        }
 
-        if (upsertError) throw upsertError;
+        // 4. Batch insert new records
+        if (itemsToInsert.length > 0) {
+          const { error: insertError } = await supabase
+            .from('products')
+            .insert(itemsToInsert);
+          if (insertError) throw insertError;
+        }
 
         setSaveStatus("Changes successfully saved to database!");
         loadAdminData(); // reload fresh rows
