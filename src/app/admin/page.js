@@ -521,7 +521,7 @@ export default function AdminPage() {
   // Render Login Card if not logged in
   if (!isAuthenticated) {
     return (
-      <div className="admin-layout">
+      <div className="admin-layout" suppressHydrationWarning>
         <div className="admin-login-container">
           <div className="admin-login-card">
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
@@ -564,7 +564,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="admin-layout min-h-screen">
+    <div className="admin-layout min-h-screen" suppressHydrationWarning>
       {/* Navbar Header */}
       <nav className="admin-navbar">
         <div className="admin-nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
