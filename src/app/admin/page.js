@@ -588,9 +588,17 @@ export default function AdminPage() {
     <div className="admin-layout min-h-screen" suppressHydrationWarning>
       {/* Navbar Header */}
       <nav className="admin-navbar">
-        <div className="admin-nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src="/logo_transparent.png" alt="Logo" style={{ maxHeight: '36px', width: 'auto', objectFit: 'contain' }} />
-          <span>{isDbConnected ? 'Live Cloud Database' : 'Simulation Mode'}</span>
+        <div className="admin-nav-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '12px' }}>
+          <div className="admin-nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src="/logo_transparent.png" alt="Logo" style={{ maxHeight: '42px', width: 'auto', objectFit: 'contain' }} />
+            <span className="db-status-badge" style={{ background: '#1e293b', color: '#94a3b8', fontSize: '0.65rem', padding: '4px 8px', borderRadius: '4px' }}>
+              {isDbConnected ? 'Live DB' : 'Simulation'}
+            </span>
+          </div>
+          <button className="admin-logout-btn" onClick={handleLogout} style={{ flexShrink: 0 }}>
+            <LogOut size={14} style={{ display: 'inline', marginRight: '4px' }} />
+            Logout
+          </button>
         </div>
         <div className="admin-nav-actions">
           <button 
@@ -610,10 +618,6 @@ export default function AdminPage() {
             onClick={() => setActiveTab('share')}
           >
             Share Links
-          </button>
-          <button className="admin-logout-btn" onClick={handleLogout}>
-            <LogOut size={14} style={{ display: 'inline', marginRight: '4px' }} />
-            Logout
           </button>
         </div>
       </nav>
