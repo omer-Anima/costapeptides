@@ -35,6 +35,9 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  
+  // Mounted state for hydration fix
+  const [mounted, setMounted] = useState(false);
 
   // Dashboard state tabs: 'spreadsheet', 'orders', 'share'
   const [activeTab, setActiveTab] = useState('spreadsheet');
@@ -63,6 +66,7 @@ export default function AdminPage() {
 
   // Auth session check on mount
   useEffect(() => {
+    setMounted(true);
     if (isSupabaseConfigured && supabase) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) {
@@ -517,6 +521,9 @@ export default function AdminPage() {
     setShareCopied(true);
     setTimeout(() => setShareCopied(false), 2000);
   };
+
+  // Prevent hydration mismatch by skipping SSR for admin portal entirely
+  if (!mounted) return null;
 
   // Render Login Card if not logged in
   if (!isAuthenticated) {
