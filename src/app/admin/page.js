@@ -265,7 +265,7 @@ export default function AdminPage() {
 
   // Add Product row
   const handleAddRow = () => {
-    const newPriority = products.length > 0 ? Math.max(...products.map(p => p.priority)) + 1 : 0;
+    const newPriority = products.length > 0 ? Math.min(...products.map(p => Number(p.priority) || 0)) - 1 : 0;
     const newRow = {
       id: `temp-${Date.now()}`,
       product: 'New Peptide Name',
@@ -278,7 +278,7 @@ export default function AdminPage() {
       imageUrl: '',
       priority: newPriority
     };
-    setProducts([...products, newRow]);
+    setProducts([newRow, ...products]);
   };
 
   // Delete row
