@@ -389,7 +389,7 @@ export default function AdminPage() {
       try {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `product-pics/${fileName}`;
+        const filePath = `${fileName}`;
 
         // Upload to bucket
         const { error: uploadError } = await supabase.storage
