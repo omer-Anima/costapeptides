@@ -443,7 +443,7 @@ export default function AdminPage() {
         // Get all currently existing database UUIDs from the active list
         const activeIds = products
           .map(p => p.id)
-          .filter(id => id && !id.toString().startsWith('temp-'));
+          .filter(id => id && !id.toString().startsWith('temp-') && !id.toString().startsWith('local-'));
 
         // 1. Delete products that were removed in the editor
         let deleteQuery = supabase.from('products').delete();
@@ -470,7 +470,7 @@ export default function AdminPage() {
             emoji: p.imageUrl ? '' : getEmojiForCategory(p.category),
             priority: idx
           };
-          if (p.id && !p.id.toString().startsWith('temp-')) {
+          if (p.id && !p.id.toString().startsWith('temp-') && !p.id.toString().startsWith('local-')) {
             row.id = p.id;
           }
           return row;
@@ -513,7 +513,7 @@ export default function AdminPage() {
   // Copy shareable link
   const getShareUrl = () => {
     const domain = typeof window !== 'undefined' ? window.location.origin : 'https://costapeptides.vercel.app';
-    return `${domain}?lang=${shareLang}&currency=${shareCurrency}`;
+    return `${domain}/catalog?lang=${shareLang}&currency=${shareCurrency}`;
   };
 
   const handleCopyLink = () => {
