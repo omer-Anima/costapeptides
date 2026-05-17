@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Papa from 'papaparse';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { 
   ShoppingBag, X, Search, Settings, 
   List, Grid, Sparkles, Phone, FileText, 
-  Plus, Minus, Trash2, Check, AlertCircle 
+  Plus, Minus, Trash2, Check, AlertCircle, ArrowLeft
 } from 'lucide-react';
 
 const WHATSAPP_NUMBER = '50684046973';
@@ -475,6 +476,10 @@ export default function CatalogPage() {
       {/* Header */}
       <header className="header">
         <div className="header-top container">
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-main)', textDecoration: 'none', fontWeight: 'bold' }}>
+            <ArrowLeft size={16} />
+            {lang === 'en' ? 'Back' : 'Volver'}
+          </Link>
           <div className="theme-toggle">
             <button 
               onClick={() => handleThemeToggle('light')} 
