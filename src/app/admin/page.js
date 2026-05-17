@@ -254,9 +254,6 @@ export default function AdminPage() {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
-    setIsAuthenticated(false);
-    setEmail('');
-    setPassword('');
     router.push('/');
   };
 
