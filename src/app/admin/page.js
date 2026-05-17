@@ -50,6 +50,7 @@ export default function AdminPage() {
   const [csvDragActive, setCsvDragActive] = useState(false);
   const [csvStatus, setCsvStatus] = useState('');
   const [csvLoading, setCsvLoading] = useState(false);
+  const [isCsvOpen, setIsCsvOpen] = useState(false);
 
   // Operation statuses
   const [saveStatus, setSaveStatus] = useState('');
@@ -435,37 +436,48 @@ export default function AdminPage() {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        // Since batch bulk updates are easiest by cleaning and re-inserting (or upserting),
-        // we can perform clean upserts for all items.
-        
-        // 1. Delete all current products to avoid stale rows
-        const { error: deleteError } = await supabase
-          .from('products')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // delete all safely
+        // Get all currently existing database UUIDs from the active list
+        const activeIds = products
+          .map(p => p.id)
+          .filter(id => id && !id.toString().startsWith('temp-'));
 
+        // 1. Delete products that were removed in the editor
+        let deleteQuery = supabase.from('products').delete();
+        if (activeIds.length > 0) {
+          deleteQuery = deleteQuery.not('id', 'in', `(${activeIds.join(',')})`);
+        } else {
+          // If no products remain, delete all safely
+          deleteQuery = deleteQuery.neq('id', '00000000-0000-0000-0000-000000000000');
+        }
+        const { error: deleteError } = await deleteQuery;
         if (deleteError) throw deleteError;
 
-        // 2. Format row fields
-        const formatted = products.map((p, idx) => ({
-          product: p.product,
-          category: p.category,
-          price_usd: p.priceUsd,
-          price_crc: p.priceCrc,
-          discount: p.discount,
-          status: p.status,
-          coa: p.coa,
-          image_url: p.imageUrl,
-          emoji: p.imageUrl ? '' : getEmojiForCategory(p.category),
-          priority: idx
-        }));
+        // 2. Format row fields for upserting
+        const formatted = products.map((p, idx) => {
+          const row = {
+            product: p.product,
+            category: p.category,
+            price_usd: p.priceUsd,
+            price_crc: p.priceCrc,
+            discount: p.discount,
+            status: p.status,
+            coa: p.coa,
+            image_url: p.imageUrl,
+            emoji: p.imageUrl ? '' : getEmojiForCategory(p.category),
+            priority: idx
+          };
+          if (p.id && !p.id.toString().startsWith('temp-')) {
+            row.id = p.id;
+          }
+          return row;
+        });
 
-        // 3. Batch insert
-        const { error: insertError } = await supabase
+        // 3. Batch upsert (inserts new records, updates existing ones in-place)
+        const { error: upsertError } = await supabase
           .from('products')
-          .insert(formatted);
+          .upsert(formatted);
 
-        if (insertError) throw insertError;
+        if (upsertError) throw upsertError;
 
         setSaveStatus("Changes successfully saved to database!");
         loadAdminData(); // reload fresh rows
@@ -513,11 +525,8 @@ export default function AdminPage() {
         <div className="admin-login-container">
           <div className="admin-login-card">
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-              <div style={{ background: 'rgba(0, 212, 255, 0.1)', padding: '12px', borderRadius: '50%', color: '#00D4FF' }}>
-                <Lock size={32} />
-              </div>
+              <img src="/logo_transparent.png" alt="Peptides Costa Rica Admin" style={{ maxHeight: '70px', width: 'auto', objectFit: 'contain' }} />
             </div>
-            <h2>Costa Peptides</h2>
             <p>Admin Security Dashboard</p>
             
             {loginError && <div className="error-msg">{loginError}</div>}
@@ -558,9 +567,8 @@ export default function AdminPage() {
     <div className="admin-layout min-h-screen">
       {/* Navbar Header */}
       <nav className="admin-navbar">
-        <div className="admin-nav-logo">
-          <LayoutDashboard size={20} style={{ color: '#00D4FF' }} />
-          <h2>PEPTIDES COSTA RICA</h2>
+        <div className="admin-nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/logo_transparent.png" alt="Logo" style={{ maxHeight: '36px', width: 'auto', objectFit: 'contain' }} />
           <span>{isDbConnected ? 'Live Cloud Database' : 'Simulation Mode'}</span>
         </div>
         <div className="admin-nav-actions">
@@ -603,13 +611,17 @@ export default function AdminPage() {
                 </p>
               </div>
               <div className="admin-actions-row">
-                <button className="admin-btn admin-btn-primary" onClick={handleSaveChanges} disabled={saveLoading}>
-                  <Save size={16} />
-                  {saveLoading ? 'Syncing DB...' : 'Save Changes'}
+                <button className="admin-btn" onClick={() => setIsCsvOpen(!isCsvOpen)}>
+                  <Upload size={16} />
+                  {isCsvOpen ? 'Hide CSV Importer' : 'Import CSV'}
                 </button>
                 <button className="admin-btn admin-btn-accent" onClick={handleAddRow}>
                   <Plus size={16} />
                   Add Product Row
+                </button>
+                <button className="admin-btn admin-btn-primary" onClick={handleSaveChanges} disabled={saveLoading}>
+                  <Save size={16} />
+                  {saveLoading ? 'Syncing DB...' : 'Save Changes'}
                 </button>
               </div>
             </div>
@@ -623,32 +635,34 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Google sheet drag uploader */}
-            <div 
-              className={`csv-dropzone ${csvDragActive ? 'drag-active' : ''}`}
-              onDragEnter={handleCsvDrag}
-              onDragOver={handleCsvDrag}
-              onDragLeave={handleCsvDrag}
-              onDrop={handleCsvDrop}
-            >
-              <Upload className="csv-dropzone-icon" />
-              <h4>Import Google Spreadsheet CSV</h4>
-              <p>Drag and drop your exported `master_sheet.csv` here, or click to browse files from your computer.</p>
-              <input 
-                type="file" 
-                accept=".csv" 
-                style={{ display: 'none' }} 
-                id="csvFileInput" 
-                onChange={handleCsvFileSelect}
-              />
-              <button 
-                className="admin-btn" 
-                style={{ marginTop: '8px' }}
-                onClick={() => document.getElementById('csvFileInput').click()}
+            {/* Collapsible Google sheet drag uploader */}
+            {isCsvOpen && (
+              <div 
+                className={`csv-dropzone ${csvDragActive ? 'drag-active' : ''}`}
+                onDragEnter={handleCsvDrag}
+                onDragOver={handleCsvDrag}
+                onDragLeave={handleCsvDrag}
+                onDrop={handleCsvDrop}
               >
-                Choose CSV File
-              </button>
-            </div>
+                <Upload className="csv-dropzone-icon" />
+                <h4>Import Google Spreadsheet CSV</h4>
+                <p>Drag and drop your exported `master_sheet.csv` here, or click to browse files from your computer.</p>
+                <input 
+                  type="file" 
+                  accept=".csv" 
+                  style={{ display: 'none' }} 
+                  id="csvFileInput" 
+                  onChange={handleCsvFileSelect}
+                />
+                <button 
+                  className="admin-btn" 
+                  style={{ marginTop: '8px' }}
+                  onClick={() => document.getElementById('csvFileInput').click()}
+                >
+                  Choose CSV File
+                </button>
+              </div>
+            )}
 
             {csvStatus && (
               <div className="csv-status-banner" style={{ background: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}>
@@ -683,10 +697,10 @@ export default function AdminPage() {
                   <tbody>
                     {products.map((p, idx) => (
                       <tr key={p.id}>
-                        <td style={{ color: '#64748b', fontWeight: 'bold', textAlign: 'center' }}>{idx + 1}</td>
+                        <td data-label="#" style={{ color: '#64748b', fontWeight: 'bold', textAlign: 'center' }}>{idx + 1}</td>
                         
                         {/* Name */}
-                        <td>
+                        <td data-label="Product Peptide Name">
                           <div 
                             contentEditable 
                             suppressContentEditableWarning
@@ -698,7 +712,7 @@ export default function AdminPage() {
                         </td>
 
                         {/* Category */}
-                        <td>
+                        <td data-label="Category">
                           <select 
                             className="cell-select"
                             value={p.category}
@@ -711,7 +725,7 @@ export default function AdminPage() {
                         </td>
 
                         {/* USD Price */}
-                        <td>
+                        <td data-label="Price (USD)">
                           <div 
                             contentEditable 
                             suppressContentEditableWarning
@@ -732,7 +746,7 @@ export default function AdminPage() {
                         </td>
 
                         {/* CRC Price */}
-                        <td>
+                        <td data-label="Price (CRC)">
                           <div 
                             contentEditable 
                             suppressContentEditableWarning
@@ -744,7 +758,7 @@ export default function AdminPage() {
                         </td>
 
                         {/* Status */}
-                        <td>
+                        <td data-label="Stock Status">
                           <select 
                             className="cell-select"
                             value={p.status}
@@ -761,7 +775,7 @@ export default function AdminPage() {
                         </td>
 
                         {/* Discount */}
-                        <td>
+                        <td data-label="Volume/Bulk Discount Info">
                           <div 
                             contentEditable 
                             suppressContentEditableWarning
@@ -773,7 +787,7 @@ export default function AdminPage() {
                         </td>
 
                         {/* Image cell with Drag physical upload */}
-                        <td>
+                        <td data-label="Image URL / Physical Upload">
                           <div className="admin-image-cell">
                             <div className="admin-image-preview">
                               {p.imageUrl && p.imageUrl.startsWith('http') ? (
@@ -810,7 +824,7 @@ export default function AdminPage() {
                         </td>
 
                         {/* COA Link */}
-                        <td>
+                        <td data-label="COA URL Link">
                           <div 
                             contentEditable 
                             suppressContentEditableWarning
@@ -822,7 +836,7 @@ export default function AdminPage() {
                         </td>
 
                         {/* Actions */}
-                        <td style={{ textAlign: 'center' }}>
+                        <td data-label="Action" style={{ textAlign: 'center' }}>
                           <button className="admin-delete-btn" onClick={() => handleDeleteRow(p.id)}>
                             <Trash2 size={14} />
                           </button>

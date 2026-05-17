@@ -522,22 +522,13 @@ export default function CatalogPage() {
         </div>
 
         <div className="header-content container">
-          <a href="/" className="logo">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="logo-svg">
-              <line x1="12" y1="28" x2="28" y2="24" stroke="#00D4FF" stroke-width="2" stroke-dasharray="0.5 2"/>
-              <line x1="28" y1="24" x2="20" y2="10" stroke="#00D4FF" stroke-width="2" stroke-dasharray="0.5 2"/>
-              <line x1="12" y1="28" x2="20" y2="10" stroke="#00D4FF" stroke-width="2" stroke-dasharray="0.5 2"/>
-              
-              <circle cx="12" cy="28" r="7" fill="rgba(0, 212, 255, 0.15)"/>
-              <circle cx="28" cy="24" r="7" fill="rgba(0, 212, 255, 0.15)"/>
-              <circle cx="20" cy="10" r="7" fill="rgba(0, 212, 255, 0.15)"/>
-
-              <circle cx="12" cy="28" r="4" fill="#00A3C4" stroke="#FFFFFF" stroke-width="1.5"/>
-              <circle cx="28" cy="24" r="4" fill="#00A3C4" stroke="#FFFFFF" stroke-width="1.5"/>
-              <circle cx="20" cy="10" r="4" fill="#00A3C4" stroke="#FFFFFF" stroke-width="1.5"/>
-            </svg>
-            <h1>{lang === 'en' ? 'PEPTIDES' : 'PÉPTIDOS'}</h1>
-            <div className="logo-banner">COSTA RICA</div>
+          <a href="/" className="logo" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <img 
+              src="/logo_transparent.png" 
+              alt="Peptides Costa Rica Logo" 
+              className="logo-img-custom"
+              style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain' }}
+            />
           </a>
         </div>
 

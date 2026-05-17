@@ -24,6 +24,12 @@ CREATE TABLE IF NOT EXISTS public.products (
 -- Enable Row Level Security (RLS) for public.products
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist to allow safe re-runs
+DROP POLICY IF EXISTS "Allow public read access to products" ON public.products;
+DROP POLICY IF EXISTS "Allow authenticated insert to products" ON public.products;
+DROP POLICY IF EXISTS "Allow authenticated update to products" ON public.products;
+DROP POLICY IF EXISTS "Allow authenticated delete to products" ON public.products;
+
 -- Select policy: Anyone (public) can view products in the catalog
 CREATE POLICY "Allow public read access to products" 
 ON public.products FOR SELECT 
@@ -62,6 +68,12 @@ CREATE TABLE IF NOT EXISTS public.orders (
 
 -- Enable Row Level Security (RLS) for public.orders
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist to allow safe re-runs
+DROP POLICY IF EXISTS "Allow public insert access to orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow authenticated read access to orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow authenticated update access to orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow authenticated delete access to orders" ON public.orders;
 
 -- Insert policy: Anyone can place a new order from the checkout screen
 CREATE POLICY "Allow public insert access to orders" 
@@ -114,3 +126,44 @@ USING (true);
 --     '',
 --     0
 -- ) ON CONFLICT (email) DO NOTHING;
+
+
+-- =========================================================================
+-- 4. SUPABASE STORAGE BUCKET: product-pics
+-- =========================================================================
+-- Creates the public storage bucket for product photos and sets up security policies.
+
+-- Insert the public bucket if it does not exist
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-pics', 'product-pics', true)
+ON CONFLICT (id) DO NOTHING;
+
+
+
+-- Select policy: Anyone (public) can read/download images from product-pics
+DROP POLICY IF EXISTS "Public Read Product Pics" ON storage.objects;
+DROP POLICY IF EXISTS "Admin Upload Product Pics" ON storage.objects;
+DROP POLICY IF EXISTS "Admin Update Product Pics" ON storage.objects;
+DROP POLICY IF EXISTS "Admin Delete Product Pics" ON storage.objects;
+
+CREATE POLICY "Public Read Product Pics" 
+ON storage.objects FOR SELECT 
+USING (bucket_id = 'product-pics');
+
+-- Write policies: Only authenticated users (admins) can upload, modify, or delete pics
+CREATE POLICY "Admin Upload Product Pics" 
+ON storage.objects FOR INSERT 
+TO authenticated 
+WITH CHECK (bucket_id = 'product-pics');
+
+CREATE POLICY "Admin Update Product Pics" 
+ON storage.objects FOR UPDATE 
+TO authenticated 
+USING (bucket_id = 'product-pics')
+WITH CHECK (bucket_id = 'product-pics');
+
+CREATE POLICY "Admin Delete Product Pics" 
+ON storage.objects FOR DELETE 
+TO authenticated 
+USING (bucket_id = 'product-pics');
+
