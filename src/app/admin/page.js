@@ -807,7 +807,7 @@ export default function AdminPage() {
                               contentEditable 
                               suppressContentEditableWarning
                               className="cell-editable"
-                              style={{ flexGrow: 1, minWidth: '80px', fontSize: '0.7rem', color: '#94a3b8', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                              style={{ flexGrow: 1, minWidth: '80px', maxWidth: '150px', fontSize: '0.7rem', color: '#94a3b8', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
                               onBlur={(e) => handleCellChange(p.id, 'imageUrl', e.target.innerText)}
                               title={p.imageUrl}
                             >
@@ -836,7 +836,9 @@ export default function AdminPage() {
                             contentEditable 
                             suppressContentEditableWarning
                             className="cell-editable"
+                            style={{ minWidth: '80px', maxWidth: '150px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
                             onBlur={(e) => handleCellChange(p.id, 'coa', e.target.innerText)}
+                            title={p.coa}
                           >
                             {p.coa}
                           </div>
