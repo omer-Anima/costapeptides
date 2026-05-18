@@ -437,7 +437,7 @@ export default function AdminPage() {
 
   // Spreadsheet Cell modification helper
   const handleCellChange = (productId, fieldName, val) => {
-    setProducts(products.map(p => 
+    setProducts(prev => prev.map(p => 
       p.id === productId ? { ...p, [fieldName]: val } : p
     ));
   };
@@ -700,10 +700,23 @@ export default function AdminPage() {
     setSaveLoading(true);
     setSaveStatus('');
 
+    // Auto-fill missing CRC prices from USD before saving
+    const filled = products.map(p => {
+      if (p.priceUsd && (!p.priceCrc || p.priceCrc.trim() === '')) {
+        const usdNum = parseFloat(String(p.priceUsd).replace(/[^0-9.]/g, '')) || 0;
+        if (usdNum > 0) {
+          return { ...p, priceCrc: `₡${Math.round(usdNum * exchangeRate).toLocaleString('en-US')}` };
+        }
+      }
+      return p;
+    });
+    // Update state so the UI reflects the auto-filled values
+    setProducts(filled);
+
     if (isSupabaseConfigured && supabase) {
       try {
         // Get all currently existing database UUIDs from the active list
-        const activeIds = products
+        const activeIds = filled
           .map(p => p.id)
           .filter(id => id && !id.toString().startsWith('temp-') && !id.toString().startsWith('local-'));
 
@@ -722,7 +735,7 @@ export default function AdminPage() {
         const itemsToUpdate = [];
         const itemsToInsert = [];
 
-        products.forEach((p, idx) => {
+        filled.forEach((p, idx) => {
           const row = {
             product: p.product,
             category: p.category,
