@@ -352,7 +352,7 @@ export default function AdminPage() {
     setPasswordStatus('');
     setPasswordLoading(true);
 
-    // Validate
+    // Validate new password fields
     if (newPassword.length < 6) {
       setPasswordStatus('error:Password must be at least 6 characters.');
       setPasswordLoading(false);
@@ -364,51 +364,62 @@ export default function AdminPage() {
       return;
     }
 
-    // Check current password against local store
-    const storedPassword = localStorage.getItem('admin_custom_password') || 'CostaPeptides2026!';
-    if (currentPassword !== storedPassword) {
-      setPasswordStatus('error:Current password is incorrect.');
+    if (!isSupabaseConfigured || !supabase) {
+      // Offline-only fallback
+      const storedPassword = localStorage.getItem('admin_custom_password') || 'CostaPeptides2026!';
+      if (currentPassword !== storedPassword) {
+        setPasswordStatus('error:Current password is incorrect.');
+        setPasswordLoading(false);
+        return;
+      }
+      localStorage.setItem('admin_custom_password', newPassword);
+      setPasswordStatus('success:Password updated locally.');
       setPasswordLoading(false);
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+      setTimeout(() => { setPasswordStatus(''); setShowPasswordModal(false); }, 2000);
       return;
     }
 
-    // 1. Try Supabase auth update — sign in first to establish session
-    if (isSupabaseConfigured && supabase) {
-      try {
-        // Sign in with current credentials to get an active session
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: 'info@peptidescostarica.net',
-          password: currentPassword
-        });
+    try {
+      // Step 1: Verify current password by signing in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: 'info@peptidescostarica.net',
+        password: currentPassword
+      });
 
-        if (signInError) {
-          console.warn('Supabase sign-in for password change failed:', signInError.message);
-          // Continue to update local password anyway
-        } else {
-          // Now we have an active session, update the password
-          const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-          if (updateError) {
-            setPasswordStatus(`error:${updateError.message}`);
-            setPasswordLoading(false);
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('Supabase password update error:', err);
+      if (signInError) {
+        // Current password is wrong
+        setPasswordStatus('error:Current password is incorrect.');
+        setPasswordLoading(false);
+        return;
       }
-    }
 
-    // 2. Update local bypass password
-    localStorage.setItem('admin_custom_password', newPassword);
-    setPasswordStatus('success:Password updated successfully!');
-    setPasswordLoading(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => {
-      setPasswordStatus('');
-      setShowPasswordModal(false);
-    }, 2000);
+      // Step 2: Actually change the password in Supabase Auth
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (updateError) {
+        setPasswordStatus(`error:${updateError.message}`);
+        setPasswordLoading(false);
+        return;
+      }
+
+      // Step 3: Success — sync localStorage so offline fallback stays consistent
+      localStorage.setItem('admin_custom_password', newPassword);
+      setPasswordStatus('success:Password updated successfully!');
+      setPasswordLoading(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => {
+        setPasswordStatus('');
+        setShowPasswordModal(false);
+      }, 2000);
+
+    } catch (err) {
+      console.error('Password change error:', err);
+      setPasswordStatus('error:An unexpected error occurred. Please try again.');
+      setPasswordLoading(false);
+    }
   };
 
   // Spreadsheet Cell modification helper
