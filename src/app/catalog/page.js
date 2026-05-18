@@ -462,7 +462,7 @@ export default function CatalogPage() {
       suggestions = [...suggestions, ...more];
     }
     
-    return suggestions.slice(0, 4);
+    return suggestions.slice(0, 3);
   };
 
   const updateCartQty = (productName, change) => {

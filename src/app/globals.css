@@ -801,52 +801,61 @@ body {
 
 /* Cart Suggestions (Amazon-style) */
 .cart-suggestions {
-    padding: 16px 24px;
+    padding: 12px 24px;
     border-top: 1px solid var(--border);
     background: var(--bg-secondary);
 }
 
 .cart-suggestions-title {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 800;
     color: var(--text-muted);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
 
 .cart-suggestions-scroll {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.cart-suggestions-scroll::-webkit-scrollbar {
+    display: none;
 }
 
 .suggestion-card {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px;
+    gap: 8px;
+    padding: 8px 10px;
     background: var(--bg-card);
     border-radius: 10px;
     border: 1px solid var(--border);
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
+    min-width: 0;
+    max-width: 200px;
 }
 
 .suggestion-card:hover {
     border-color: var(--primary);
-    transform: translateX(2px);
 }
 
 .suggestion-icon {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--bg-secondary);
-    border-radius: 8px;
+    border-radius: 6px;
     color: var(--text-primary);
     overflow: hidden;
 }
@@ -856,11 +865,11 @@ body {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
 }
 
 .suggestion-name {
-    font-size: 0.78rem;
+    font-size: 0.68rem;
     font-weight: 700;
     color: var(--text-main);
     white-space: nowrap;
@@ -869,15 +878,15 @@ body {
 }
 
 .suggestion-price {
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     font-weight: 800;
     color: var(--text-primary);
 }
 
 .suggestion-add-btn {
     flex-shrink: 0;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     border: none;
     background: var(--primary);
