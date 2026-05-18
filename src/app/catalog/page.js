@@ -109,6 +109,7 @@ export default function CatalogPage() {
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [cartAnimating, setCartAnimating] = useState(false);
+  const [sessionId, setSessionId] = useState('');
 
   // Local storage & URL params setup on mount
   useEffect(() => {
@@ -148,6 +149,14 @@ export default function CatalogPage() {
     if (savedCart) {
       try { setCart(JSON.parse(savedCart)); } catch(e) {}
     }
+
+    // Session ID loaded from localStorage
+    let sid = localStorage.getItem('cart_session_id');
+    if (!sid) {
+      sid = 'session_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('cart_session_id', sid);
+    }
+    setSessionId(sid);
 
     // Load Data
     loadCatalogData();
@@ -199,10 +208,31 @@ export default function CatalogPage() {
     };
   }, []);
 
-  // Sync cart to localStorage
+  // Sync cart to localStorage and Supabase
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+    
+    if (sessionId && isSupabaseConfigured && supabase) {
+      const timeoutId = setTimeout(async () => {
+        if (cart.length > 0 || localStorage.getItem('had_items')) {
+          if (cart.length > 0) localStorage.setItem('had_items', 'true');
+          try {
+            await supabase.from('abandoned_carts').upsert({
+              session_id: sessionId,
+              cart_data: cart,
+              customer_name: customerName || null,
+              customer_phone: customerPhone || null,
+              last_updated: new Date().toISOString(),
+              status: 'active'
+            }, { onConflict: 'session_id' });
+          } catch (err) {
+            console.error('Failed to sync abandoned cart:', err);
+          }
+        }
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [cart, customerName, customerPhone, sessionId]);
 
   // Load Catalog Data (Supabase or CSV fallback)
   const loadCatalogData = async () => {
@@ -462,7 +492,15 @@ export default function CatalogPage() {
             status: 'Pending'
           });
 
-        if (!error) dbSuccess = true;
+        if (!error) {
+          dbSuccess = true;
+          if (sessionId) {
+            await supabase.from('abandoned_carts').update({ status: 'converted' }).eq('session_id', sessionId);
+            const newSid = 'session_' + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('cart_session_id', newSid);
+            setSessionId(newSid);
+          }
+        }
       } catch (err) {
         console.error("Order logging failed to Supabase:", err);
       }
@@ -656,6 +694,19 @@ export default function CatalogPage() {
             >
               <Settings size={18} />
             </button>
+            <button 
+              onClick={() => setIsCartOpen(true)}
+              className={`filter-btn nav-cart-btn ${cartAnimating ? 'cart-animating' : ''}`}
+              title="Cart"
+              style={{ position: 'relative' }}
+            >
+              <ShoppingBag size={18} />
+              {cart.length > 0 && (
+                <span className="nav-cart-badge" style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'var(--accent)', color: 'white', fontSize: '0.6rem', padding: '2px 5px', borderRadius: '10px', fontWeight: 'bold' }}>
+                  {cart.reduce((a, b) => a + b.qty, 0)}
+                </span>
+              )}
+            </button>
           </div>
 
           <div className={`filter-panel ${showFilters ? 'active' : ''}`}>
@@ -765,17 +816,7 @@ export default function CatalogPage() {
         )}
       </main>
 
-      {/* Cart Toggle floating button */}
-      {cart.length > 0 && (
-        <button 
-          className={`cart-toggle-btn ${cartAnimating ? 'cart-animating' : ''}`}
-          onClick={() => setIsCartOpen(true)}
-          title="Open Shopping Cart"
-        >
-          <ShoppingBag size={24} />
-          <span className="cart-badge">{cart.reduce((a, b) => a + b.qty, 0)}</span>
-        </button>
-      )}
+
 
       {/* Cart Drawer Overlay */}
       <div 

@@ -51,8 +51,10 @@ export default function AdminPage() {
   // Spreadsheet product editor states
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [abandonedCarts, setAbandonedCarts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [loadingAbandonedCarts, setLoadingAbandonedCarts] = useState(true);
   const [isDbConnected, setIsDbConnected] = useState(false);
   const [exchangeRate, setExchangeRate] = useState(FALLBACK_EXCHANGE_RATE);
   
@@ -264,6 +266,25 @@ export default function AdminPage() {
       }
     }
     setLoadingOrders(false);
+
+    // 3. Fetch Abandoned Carts
+    setLoadingAbandonedCarts(true);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('abandoned_carts')
+          .select('*')
+          .eq('status', 'active')
+          .order('last_updated', { ascending: false });
+
+        if (!error && data) {
+          setAbandonedCarts(data.filter(c => c.cart_data && c.cart_data.length > 0));
+        }
+      } catch (err) {
+        console.error("Failed to load abandoned carts:", err);
+      }
+    }
+    setLoadingAbandonedCarts(false);
   };
 
   // Trigger loading when authenticated
@@ -764,6 +785,12 @@ export default function AdminPage() {
           >
             Share Links
           </button>
+          <button 
+            className={`admin-tab-btn ${activeTab === 'abandoned' ? 'active' : ''}`}
+            onClick={() => setActiveTab('abandoned')}
+          >
+            Abandoned Carts {abandonedCarts.length > 0 && <span style={{ background: '#f59e0b', color: 'white', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>{abandonedCarts.length}</span>}
+          </button>
         </div>
       </nav>
 
@@ -1195,6 +1222,56 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'abandoned' && (
+          <div className="admin-orders-tab">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+              <h2 style={{ fontSize: '1.25rem', color: '#f8fafc', margin: 0 }}>🛒 Active / Abandoned Carts</h2>
+              <button className="admin-btn" onClick={loadAdminData} style={{ padding: '6px 14px', fontSize: '0.85rem', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', color: '#38bdf8', borderRadius: '8px', cursor: 'pointer', fontWeight: '700' }}>
+                Refresh
+              </button>
+            </div>
+            
+            {loadingAbandonedCarts ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading carts...</div>
+            ) : abandonedCarts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', background: '#0e1626', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+                No active or abandoned carts currently.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {abandonedCarts.map(acart => (
+                  <div key={acart.session_id} style={{ background: '#0e1626', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 4px 6px rgba(0,0,0,0.2)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: '#f8fafc' }}>{acart.customer_name || 'Anonymous User'}</h3>
+                        <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                          Phone: {acart.customer_phone || 'Not provided'}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-block', marginBottom: '6px' }}>Active Cart</div>
+                        <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                          Last Updated: {new Date(acart.last_updated).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <h4 style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>Items in Cart:</h4>
+                    <div style={{ background: '#172237', padding: '12px', borderRadius: '8px' }}>
+                      {acart.cart_data.map((item, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: idx < acart.cart_data.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', color: '#f8fafc' }}>
+                          <span>{item.product}</span>
+                          <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>x{item.qty}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
