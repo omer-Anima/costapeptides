@@ -41,6 +41,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const loggedInEmail = React.useRef(''); // persists the email used to sign in
   
   // Mounted state for hydration fix
   const [mounted, setMounted] = useState(false);
@@ -84,9 +85,14 @@ export default function AdminPage() {
   // Auth session check on mount
   useEffect(() => {
     setMounted(true);
+    // Restore last used email
+    const savedEmail = localStorage.getItem('admin_email') || 'info@peptidescostarica.net';
+    loggedInEmail.current = savedEmail;
+
     if (isSupabaseConfigured && supabase) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) {
+          loggedInEmail.current = session.user.email || savedEmail;
           setIsAuthenticated(true);
           loadAdminData();
         }
@@ -311,6 +317,7 @@ export default function AdminPage() {
         if (!error) {
           // Success via Supabase — also update local cache so offline fallback stays in sync
           localStorage.setItem('admin_custom_password', password);
+          loggedInEmail.current = email.trim(); // remember which email logged in
           setIsAuthenticated(true);
           setLoginError('');
           setLoginLoading(false);
@@ -330,6 +337,7 @@ export default function AdminPage() {
     // Offline / no Supabase fallback only
     const storedPassword = localStorage.getItem('admin_custom_password') || 'CostaPeptides2026!';
     if (email.trim() === 'info@peptidescostarica.net' && password === storedPassword) {
+      loggedInEmail.current = email.trim();
       setIsAuthenticated(true);
       setLoginError('');
     } else {
@@ -381,15 +389,16 @@ export default function AdminPage() {
     }
 
     try {
-      // Step 1: Verify current password by signing in
+      // Step 1: Verify current password by signing in using the email that was used to log in
+      const adminEmail = loggedInEmail.current || localStorage.getItem('admin_email') || 'info@peptidescostarica.net';
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: 'info@peptidescostarica.net',
+        email: adminEmail,
         password: currentPassword
       });
 
       if (signInError) {
-        // Current password is wrong
-        setPasswordStatus('error:Current password is incorrect.');
+        // Current password is wrong — show the real reason
+        setPasswordStatus(`error:Current password is incorrect. (${signInError.message})`);
         setPasswordLoading(false);
         return;
       }
@@ -403,17 +412,21 @@ export default function AdminPage() {
         return;
       }
 
-      // Step 3: Success — sync localStorage so offline fallback stays consistent
+      // Step 3: Success — sync localStorage
       localStorage.setItem('admin_custom_password', newPassword);
-      setPasswordStatus('success:Password updated successfully!');
+      localStorage.setItem('admin_email', adminEmail);
+      setPasswordStatus('success:Password updated! Please log in again with your new password.');
       setPasswordLoading(false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setTimeout(() => {
+      // Sign out so user is forced to log in fresh with new password
+      setTimeout(async () => {
         setPasswordStatus('');
         setShowPasswordModal(false);
-      }, 2000);
+        await supabase.auth.signOut();
+        setIsAuthenticated(false);
+      }, 2500);
 
     } catch (err) {
       console.error('Password change error:', err);
