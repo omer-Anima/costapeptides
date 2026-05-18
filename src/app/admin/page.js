@@ -300,33 +300,40 @@ export default function AdminPage() {
     setLoginError('');
     setLoginLoading(true);
 
-    // 1. Try Supabase Auth First
-    let authSuccess = false;
-    let authErrorMessage = '';
-
     if (isSupabaseConfigured && supabase) {
+      // Always try Supabase Auth — this is the single source of truth
       try {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password
         });
+
         if (!error) {
-          authSuccess = true;
+          // Success via Supabase — also update local cache so offline fallback stays in sync
+          localStorage.setItem('admin_custom_password', password);
+          setIsAuthenticated(true);
+          setLoginError('');
+          setLoginLoading(false);
+          return;
         } else {
-          authErrorMessage = error.message;
+          // Supabase rejected — don't fall through, treat as real failure
+          setLoginError('Invalid email or password.');
+          setLoginLoading(false);
+          return;
         }
       } catch (err) {
-        authErrorMessage = "Login service currently unavailable.";
+        console.error('Supabase login error:', err);
+        // Network error — try local cache as last resort
       }
     }
 
-    // 2. Direct simulation bypass fallback
+    // Offline / no Supabase fallback only
     const storedPassword = localStorage.getItem('admin_custom_password') || 'CostaPeptides2026!';
-    if (authSuccess || (email.trim() === 'info@peptidescostarica.net' && password === storedPassword)) {
+    if (email.trim() === 'info@peptidescostarica.net' && password === storedPassword) {
       setIsAuthenticated(true);
       setLoginError('');
     } else {
-      setLoginError(authErrorMessage || "Invalid admin credentials.");
+      setLoginError('Invalid admin credentials.');
     }
 
     setLoginLoading(false);
