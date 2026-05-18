@@ -1062,9 +1062,9 @@ export default function AdminPage() {
                             onBlur={(e) => {
                               const v = e.target.innerText;
                               handleCellChange(p.id, 'priceUsd', v);
-                              // Auto calculate CRC price if missing
+                              // Auto calculate CRC price whenever USD changes
                               const usdNum = parseFloat(v.replace(/[^0-9.]/g, '')) || 0;
-                              if (usdNum > 0 && (!p.priceCrc || p.priceCrc.trim() === '')) {
+                              if (usdNum > 0) {
                                 const calc = Math.round(usdNum * exchangeRate);
                                 handleCellChange(p.id, 'priceCrc', `₡${calc.toLocaleString('en-US')}`);
                               }
