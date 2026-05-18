@@ -597,6 +597,61 @@ export default function AdminPage() {
     }
   };
 
+  // Delete a single order
+  const handleDeleteOrder = async (orderId) => {
+    if (!confirm('Delete this order? This cannot be undone.')) return;
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('orders').delete().eq('id', orderId);
+      } catch(err) {
+        console.error('Order delete error:', err);
+      }
+    }
+  };
+
+  // Export orders to XLSX (via CSV download that Google Sheets/Excel opens natively)
+  const downloadOrdersXlsx = () => {
+    if (orders.length === 0) return;
+
+    const rows = [];
+    // Header
+    rows.push(['Order ID', 'Date (CR)', 'Customer Name', 'WhatsApp', 'Status', 'Currency', 'Items', 'Total USD', 'Total CRC']);
+
+    orders.forEach(order => {
+      const items = Array.isArray(order.items) ? order.items : [];
+      const itemsSummary = items.map(i => `${i.product} x${i.qty}`).join(' | ');
+      const orderDate = new Date(order.created_at).toLocaleString('es-CR', { timeZone: 'America/Costa_Rica' });
+      rows.push([
+        order.id,
+        orderDate,
+        order.customer_name || '',
+        order.customer_phone || '',
+        order.status || 'Pending',
+        order.currency || 'USD',
+        itemsSummary,
+        order.total_usd || '',
+        order.total_crc || ''
+      ]);
+    });
+
+    // Build CSV string
+    const csvContent = rows.map(row =>
+      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+
+    // Download as .csv (opens perfectly in Excel & Google Sheets)
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `peptidescr-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Save changes batch
   const handleSaveChanges = async () => {
     setSaveLoading(true);
@@ -1093,6 +1148,16 @@ export default function AdminPage() {
                   A secure listing of all catalog order intents placed by customers. Double check entries here before coordinating dispatches on WhatsApp.
                 </p>
               </div>
+              {orders.length > 0 && (
+                <button
+                  className="admin-btn admin-btn-primary"
+                  onClick={downloadOrdersXlsx}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}
+                >
+                  <Upload size={14} />
+                  Export to Excel / Sheets
+                </button>
+              )}
             </div>
 
             {loadingOrders ? (
@@ -1177,17 +1242,28 @@ export default function AdminPage() {
                           </span>
                         </div>
                         
-                        {/* WhatsApp direct contact link */}
-                        <a 
-                          href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="admin-btn"
-                          style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'rgba(34, 197, 94, 0.2)', color: '#4ade80' }}
-                        >
-                          <MessageSquare size={14} />
-                          Open WhatsApp Chat
-                        </a>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {/* WhatsApp direct contact link */}
+                          <a 
+                            href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="admin-btn"
+                            style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'rgba(34, 197, 94, 0.2)', color: '#4ade80' }}
+                          >
+                            <MessageSquare size={14} />
+                            WhatsApp
+                          </a>
+                          {/* Delete order */}
+                          <button
+                            className="admin-btn"
+                            onClick={() => handleDeleteOrder(order.id)}
+                            style={{ background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)', color: '#f87171' }}
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
