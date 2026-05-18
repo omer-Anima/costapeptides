@@ -523,18 +523,34 @@ export default function AdminPage() {
 
     if (isSupabaseConfigured && supabase) {
       try {
+        // 1. Delete old image from storage if it exists
+        const currentProduct = products.find(p => p.id === productId);
+        if (currentProduct && currentProduct.imageUrl && currentProduct.imageUrl.includes('product-pics')) {
+          try {
+            // Extract file name from the public URL
+            const urlParts = currentProduct.imageUrl.split('/product-pics/');
+            if (urlParts[1]) {
+              const oldFileName = decodeURIComponent(urlParts[1].split('?')[0]);
+              await supabase.storage.from('product-pics').remove([oldFileName]);
+              console.log('Old image deleted:', oldFileName);
+            }
+          } catch (delErr) {
+            console.warn('Could not delete old image (non-critical):', delErr);
+          }
+        }
+
+        // 2. Upload new image
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        // Upload to bucket
         const { error: uploadError } = await supabase.storage
           .from('product-pics')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        // Get public URL
+        // 3. Get public URL
         const { data: { publicUrl } } = supabase.storage
           .from('product-pics')
           .getPublicUrl(filePath);
