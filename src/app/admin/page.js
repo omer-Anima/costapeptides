@@ -357,7 +357,7 @@ export default function AdminPage() {
       return;
     }
 
-    // Check current password
+    // Check current password against local store
     const storedPassword = localStorage.getItem('admin_custom_password') || 'CostaPeptides2026!';
     if (currentPassword !== storedPassword) {
       setPasswordStatus('error:Current password is incorrect.');
@@ -365,14 +365,26 @@ export default function AdminPage() {
       return;
     }
 
-    // 1. Try Supabase auth update
+    // 1. Try Supabase auth update — sign in first to establish session
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.auth.updateUser({ password: newPassword });
-        if (error) {
-          setPasswordStatus(`error:${error.message}`);
-          setPasswordLoading(false);
-          return;
+        // Sign in with current credentials to get an active session
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: 'info@peptidescostarica.net',
+          password: currentPassword
+        });
+
+        if (signInError) {
+          console.warn('Supabase sign-in for password change failed:', signInError.message);
+          // Continue to update local password anyway
+        } else {
+          // Now we have an active session, update the password
+          const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+          if (updateError) {
+            setPasswordStatus(`error:${updateError.message}`);
+            setPasswordLoading(false);
+            return;
+          }
         }
       } catch (err) {
         console.error('Supabase password update error:', err);
