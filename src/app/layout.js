@@ -16,6 +16,15 @@ const inter = Inter({
 export const metadata = {
   title: "Peptides Costa Rica | Catálogo Premium",
   description: "Catálogo premium de péptidos para Peptides Costa Rica. Explore nuestra selección de alta calidad con precios y disponibilidad en tiempo real.",
+  openGraph: {
+    title: "Peptides Costa Rica | Catálogo Premium",
+    description: "Catálogo premium de péptidos de alta calidad con precios y disponibilidad en tiempo real.",
+    images: ['/logo.png'],
+  },
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/logo.png',
+  },
 };
 
 export const viewport = {

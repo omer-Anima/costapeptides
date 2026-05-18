@@ -7,11 +7,13 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { 
   ShoppingBag, X, Search, Settings, 
   List, Grid, Sparkles, Phone, FileText, 
-  Plus, Minus, Trash2, Check, AlertCircle, ArrowLeft
+  Plus, Minus, Trash2, Check, AlertCircle, ArrowLeft,
+  Dna, FlaskConical, Syringe, TestTubes, Atom, 
+  Brain, Shield, Moon, Sun, Flame, Zap, Droplets, Microscope
 } from 'lucide-react';
 
 const WHATSAPP_NUMBER = '50684046973';
-const EXCHANGE_RATE = 454.48;
+const FALLBACK_EXCHANGE_RATE = 454.48;
 
 const CATEGORY_TRANSLATIONS = {
   'Weight Loss & Metabolism': 'Pérdida de peso y metabolismo',
@@ -43,6 +45,37 @@ const STATUS_TRANSLATIONS = {
   }
 };
 
+const getEmojiForCategory = (cat) => {
+  const c = (cat || '').toLowerCase();
+  if (c.includes('weight') || c.includes('peso')) return '⚖️';
+  if (c.includes('sleep') || c.includes('sueño')) return '🌙';
+  if (c.includes('sexual')) return '🔥';
+  if (c.includes('skin') || c.includes('piel')) return '✨';
+  if (c.includes('immune') || c.includes('inmune')) return '🛡️';
+  if (c.includes('supply') || c.includes('suministro')) return '💧';
+  if (c.includes('brain') || c.includes('cerebro')) return '🧠';
+  if (c.includes('muscle') || c.includes('músculo')) return '💪';
+  return '🧪';
+};
+
+const translateDiscount = (str, targetLang) => {
+  if (!str) return '';
+  const s = str.trim();
+  
+  if (targetLang === 'en') {
+    let result = s.replace(/compra\s+(\d+)\+\s+viales,\s+(\d+)%\s+de\s+descuento/i, 'Buy $1+ vials, get $2% off');
+    result = result.replace(/compra\s+(\d+)\+\s+viales,\s+obtenga\s+(\d+)%\s+de\s+descuento/i, 'Buy $1+ vials, get $2% off');
+    return result;
+  } 
+  
+  if (targetLang === 'es') {
+    let result = s.replace(/buy\s+(\d+)\+\s+vials,\s+get\s+(\d+)%\s+off/i, 'Compra $1+ viales, $2% de descuento');
+    return result;
+  }
+  
+  return str;
+};
+
 export default function CatalogPage() {
   // Theme, Lang, Currency States
   const [theme, setTheme] = useState('light');
@@ -53,6 +86,7 @@ export default function CatalogPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDbBacked, setIsDbBacked] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState(FALLBACK_EXCHANGE_RATE);
 
   // Search & Filtering States
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,7 +94,7 @@ export default function CatalogPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [priceFilter, setPriceFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('pop');
-  const [inStockOnly, setInStockOnly] = useState(false);
+  const [inStockOnly, setInStockOnly] = useState(true);
   const [viewMode, setViewMode] = useState('list'); // 'list', 'compact', 'grid'
 
   // Cart & Modals States
@@ -74,6 +108,7 @@ export default function CatalogPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [cartAnimating, setCartAnimating] = useState(false);
 
   // Local storage & URL params setup on mount
   useEffect(() => {
@@ -116,6 +151,52 @@ export default function CatalogPage() {
 
     // Load Data
     loadCatalogData();
+
+    // Fetch live exchange rate
+    fetchLiveExchangeRate();
+  }, []);
+
+  // Live currency exchange rate fetch
+  const fetchLiveExchangeRate = async () => {
+    try {
+      const cached = localStorage.getItem('exchangeRate_USDCRC');
+      const cachedTime = localStorage.getItem('exchangeRate_USDCRC_time');
+      if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < 3600000) {
+        setExchangeRate(parseFloat(cached));
+        return;
+      }
+      const res = await fetch('https://open.er-api.com/v6/latest/USD');
+      const data = await res.json();
+      if (data.rates && data.rates.CRC) {
+        const rate = data.rates.CRC;
+        setExchangeRate(rate);
+        localStorage.setItem('exchangeRate_USDCRC', rate.toString());
+        localStorage.setItem('exchangeRate_USDCRC_time', Date.now().toString());
+      }
+    } catch (err) {
+      console.error('Live exchange rate fetch failed, using fallback:', err);
+    }
+  };
+
+  // Supabase Realtime subscription — live sync when admin changes prices/stock/products
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    const channel = supabase
+      .channel('catalog-products-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        (payload) => {
+          console.log('Catalog realtime update:', payload.eventType);
+          loadCatalogData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Sync cart to localStorage
@@ -194,14 +275,14 @@ export default function CatalogPage() {
                   // Parse numerical usd
                   const cleanUsdStr = p.priceUsd || '';
                   const usdNum = parseFloat(cleanUsdStr.replace(/[^0-9.]/g, '')) || 0;
-                  const calculatedCrc = Math.round(usdNum * EXCHANGE_RATE);
+                  const calculatedCrc = Math.round(usdNum * exchangeRate);
 
                   return {
                     product: p.product,
                     category: p.category,
                     priceUsd: cleanUsdStr,
                     priceCrc: calculatedCrc > 0 ? `₡${calculatedCrc.toLocaleString('en-US')}` : '',
-                    discount: lang === 'es' ? (p.bulkDiscountEs || '') : (p.bulkDiscountEn || ''),
+                    discount: p.bulkDiscountEs || p.bulkDiscountEn || '',
                     status: p.status || 'In Stock',
                     coa: p.coa || '',
                     imageUrl: p.imageUrl || '',
@@ -223,17 +304,23 @@ export default function CatalogPage() {
     setLoading(false);
   };
 
-  const getEmojiForCategory = (cat) => {
+  // Science/peptide themed icon for each category (no pills!)
+  const getCategoryIcon = (cat, size = 28) => {
     const c = (cat || '').toLowerCase();
-    if (c.includes('weight') || c.includes('peso')) return '⚖️';
-    if (c.includes('sleep') || c.includes('sueño')) return '🌙';
-    if (c.includes('sexual')) return '🔥';
-    if (c.includes('skin') || c.includes('piel')) return '✨';
-    if (c.includes('immune') || c.includes('inmune')) return '🛡️';
-    if (c.includes('supply') || c.includes('suministro')) return '💧';
-    if (c.includes('brain') || c.includes('cerebro')) return '🧠';
-    if (c.includes('muscle') || c.includes('músculo')) return '💪';
-    return '💊';
+    const props = { size, className: 'category-icon', strokeWidth: 1.8 };
+    if (c.includes('weight') || c.includes('peso') || c.includes('metaboli')) return <Atom {...props} />;
+    if (c.includes('exercise') || c.includes('mimetic')) return <Zap {...props} />;
+    if (c.includes('recovery') || c.includes('healing') || c.includes('recuper')) return <Dna {...props} />;
+    if (c.includes('anti-inflam') || c.includes('antiinflam')) return <Shield {...props} />;
+    if (c.includes('performance') || c.includes('hormon') || c.includes('rendimiento')) return <Syringe {...props} />;
+    if (c.includes('aging') || c.includes('longevity') || c.includes('envejecimiento')) return <TestTubes {...props} />;
+    if (c.includes('immune') || c.includes('inmune') || c.includes('antioxidant')) return <Microscope {...props} />;
+    if (c.includes('cognitive') || c.includes('mood') || c.includes('cognitivo')) return <Brain {...props} />;
+    if (c.includes('sleep') || c.includes('dormir') || c.includes('sueño')) return <Moon {...props} />;
+    if (c.includes('sexual') || c.includes('tanning') || c.includes('bronceado')) return <Flame {...props} />;
+    if (c.includes('skin') || c.includes('hair') || c.includes('piel') || c.includes('cabello')) return <Sparkles {...props} />;
+    if (c.includes('supply') || c.includes('suministro') || c.includes('reconstitution')) return <FlaskConical {...props} />;
+    return <FlaskConical {...props} />;
   };
 
   // Helper stock check
@@ -278,7 +365,7 @@ export default function CatalogPage() {
       return parsePrice(prod.priceUsd);
     } else {
       if (prod.priceCrc) return parsePrice(prod.priceCrc);
-      return Math.round(parsePrice(prod.priceUsd) * EXCHANGE_RATE);
+      return Math.round(parsePrice(prod.priceUsd) * exchangeRate);
     }
   };
 
@@ -316,6 +403,10 @@ export default function CatalogPage() {
     }
     setSelectedProduct(null);
     setIsCartOpen(true);
+
+    // Trigger cart bounce animation
+    setCartAnimating(true);
+    setTimeout(() => setCartAnimating(false), 800);
   };
 
   const updateCartQty = (productName, change) => {
@@ -365,8 +456,8 @@ export default function CatalogPage() {
             customer_name: customerName,
             customer_phone: customerPhone,
             items: orderItems,
-            total_usd: currency === 'USD' ? totalVal : Math.round(totalVal / EXCHANGE_RATE),
-            total_crc: currency === 'CRC' ? totalVal : Math.round(totalVal * EXCHANGE_RATE),
+            total_usd: currency === 'USD' ? totalVal : Math.round(totalVal / exchangeRate),
+            total_crc: currency === 'CRC' ? totalVal : Math.round(totalVal * exchangeRate),
             currency: currency,
             status: 'Pending'
           });
@@ -450,21 +541,22 @@ export default function CatalogPage() {
     return true;
   });
 
-  // Sorting
+  // Sorting — always put in-stock items first, out-of-stock at bottom
   if (sortOrder === 'pop') {
-    // Default popularity: if category filter bubble is clicked, priorize stock items but keep original sequence order
-    if (activeCategory !== 'all') {
-      filteredProducts = [...filteredProducts].sort((a, b) => {
-        const stockA = isInStock(a.status);
-        const stockB = isInStock(b.status);
-        if (stockA && !stockB) return -1;
-        if (!stockA && stockB) return 1;
-        return 0;
-      });
-    }
-  } else {
-    // Price low to high or high to low
     filteredProducts = [...filteredProducts].sort((a, b) => {
+      const stockA = isInStock(a.status);
+      const stockB = isInStock(b.status);
+      if (stockA && !stockB) return -1;
+      if (!stockA && stockB) return 1;
+      return 0;
+    });
+  } else {
+    // Price sort, but still group in-stock first
+    filteredProducts = [...filteredProducts].sort((a, b) => {
+      const stockA = isInStock(a.status);
+      const stockB = isInStock(b.status);
+      if (stockA && !stockB) return -1;
+      if (!stockA && stockB) return 1;
       const priceA = getPriceAsNumber(a, currency);
       const priceB = getPriceAsNumber(b, currency);
       return sortOrder === 'lowToHigh' ? priceA - priceB : priceB - priceA;
@@ -473,8 +565,8 @@ export default function CatalogPage() {
 
   return (
     <div id="app" className="min-h-screen">
-      {/* Header */}
-      <header className="header">
+      {/* Static Top Header Section */}
+      <header className="header-top-section">
         <div className="header-top container">
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-main)', textDecoration: 'none', fontWeight: 'bold' }}>
             <ArrowLeft size={16} />
@@ -486,14 +578,14 @@ export default function CatalogPage() {
               className={theme === 'light' ? 'active' : ''} 
               title="Light Mode"
             >
-              ☀️
+              <Sun size={14} strokeWidth={2.5} />
             </button>
             <button 
               onClick={() => handleThemeToggle('dark')} 
               className={theme === 'dark' ? 'active' : ''} 
               title="Dark Mode"
             >
-              🌙
+              <Moon size={14} strokeWidth={2.5} />
             </button>
           </div>
           <div className="lang-selector">
@@ -529,14 +621,17 @@ export default function CatalogPage() {
         <div className="header-content container">
           <a href="/" className="logo" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <img 
-              src="/logo_transparent.png" 
+              src="/logo.png" 
               alt="Peptides Costa Rica Logo" 
               className="logo-img-custom"
-              style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain' }}
+              style={{ maxHeight: '70px', width: 'auto', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 2px 16px rgba(0,0,0,0.15)' }}
             />
           </a>
         </div>
+      </header>
 
+      {/* Compact Sticky Bottom Controls Section */}
+      <div className="header-sticky-section">
         <div className="search-bar container">
           <div className="search-row">
             <div className="search-input-wrapper">
@@ -608,7 +703,7 @@ export default function CatalogPage() {
             ))}
           </div>
         </nav>
-      </header>
+      </div>
 
       {/* Main Catalog View */}
       <main className="main container">
@@ -644,7 +739,7 @@ export default function CatalogPage() {
                         alt={p.product} 
                         style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} 
                       />
-                    ) : p.emoji}
+                    ) : getCategoryIcon(p.category)}
                     {!inStock && !comingSoon && (
                       <div className="out-of-stock-overlay">
                         <span>{lang === 'en' ? 'OUT OF STOCK' : 'AGOTADO'}</span>
@@ -673,7 +768,7 @@ export default function CatalogPage() {
       {/* Cart Toggle floating button */}
       {cart.length > 0 && (
         <button 
-          className="cart-toggle-btn" 
+          className={`cart-toggle-btn ${cartAnimating ? 'cart-animating' : ''}`}
           onClick={() => setIsCartOpen(true)}
           title="Open Shopping Cart"
         >
@@ -721,7 +816,7 @@ export default function CatalogPage() {
                 <div className="cart-item-img">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.product} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : item.emoji}
+                  ) : getCategoryIcon(item.category, 22)}
                 </div>
                 <div className="cart-item-details">
                   <h4 className="cart-item-name">{item.product}</h4>
@@ -797,7 +892,7 @@ export default function CatalogPage() {
                       alt={selectedProduct.product} 
                       style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '20px' }} 
                     />
-                  ) : selectedProduct.emoji}
+                  ) : getCategoryIcon(selectedProduct.category, 56)}
                 </div>
               </div>
               <div className="product-category" style={{ color: 'var(--text-primary)', paddingRight: 0 }}>
@@ -819,7 +914,7 @@ export default function CatalogPage() {
               </div>
               {selectedProduct.discount && (
                 <div style={{ color: 'var(--accent)', fontWeight: '800', fontSize: '0.85rem', textAlign: 'right', marginTop: '6px' }}>
-                  ✨ {selectedProduct.discount}
+                  ✨ {translateDiscount(selectedProduct.discount, lang)}
                 </div>
               )}
             </div>

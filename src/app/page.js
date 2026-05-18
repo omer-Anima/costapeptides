@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ArrowRight, ShieldCheck, Clock, Zap, Target, Leaf, CheckCircle,
-  MessageSquare, User, TrendingUp, Settings
+  MessageSquare, User, TrendingUp, Settings, Sun, Moon
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -28,16 +28,16 @@ export default function LandingPage() {
       <header className="header landing-header">
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="theme-toggle">
-            <button onClick={() => handleThemeToggle('light')} className={theme === 'light' ? 'active' : ''} title="Light Mode">☀️</button>
-            <button onClick={() => handleThemeToggle('dark')} className={theme === 'dark' ? 'active' : ''} title="Dark Mode">🌙</button>
+            <button onClick={() => handleThemeToggle('light')} className={theme === 'light' ? 'active' : ''} title="Light Mode"><Sun size={14} strokeWidth={2.5} /></button>
+            <button onClick={() => handleThemeToggle('dark')} className={theme === 'dark' ? 'active' : ''} title="Dark Mode"><Moon size={14} strokeWidth={2.5} /></button>
           </div>
           
           <a href="/" className="logo" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <img 
-              src="/logo_transparent.png" 
+              src="/logo.png" 
               alt="Peptides Costa Rica Logo" 
               className="logo-img-custom"
-              style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain' }}
+              style={{ maxHeight: '52px', width: 'auto', objectFit: 'contain', borderRadius: '10px', boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }}
             />
           </a>
 
@@ -82,7 +82,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="footer" style={{ marginTop: '0' }}>
         <div className="container">
-          <img src="/logo_transparent.png" alt="Logo" style={{ height: '40px', marginBottom: '16px', opacity: 0.8 }} />
+          <img src="/logo.png" alt="Logo" style={{ height: '40px', marginBottom: '16px', opacity: 0.8, borderRadius: '8px' }} />
           <p>Peptides Costa Rica offers premium, research-backed peptides with trusted quality and bulk savings.</p>
           
           <div className="footer-links" style={{ marginBottom: '24px' }}>

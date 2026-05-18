@@ -49,6 +49,22 @@ const getEmojiForCategory = (cat) => {
 async function seed() {
   console.log('🚀 Starting Supabase catalog seeding...');
   
+  // Try to authenticate so RLS is satisfied
+  try {
+    console.log('🔑 Authenticating as admin user...');
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: 'info@peptidescostarica.net',
+      password: 'CostaPeptides2026!'
+    });
+    if (authError) {
+      console.log(`⚠️ Warning: Authentication failed (${authError.message}). Attempting unauthenticated seed...`);
+    } else {
+      console.log('✅ Authenticated successfully as admin!');
+    }
+  } catch (err) {
+    console.log(`⚠️ Warning: Authentication error (${err.message}). Attempting unauthenticated seed...`);
+  }
+  
   // 3. Read and parse master_sheet.csv
   const csvPath = path.join(__dirname, '../public/master_sheet.csv');
   if (!fs.existsSync(csvPath)) {

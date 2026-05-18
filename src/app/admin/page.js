@@ -7,10 +7,13 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { 
   Lock, LayoutDashboard, ListFilter, Plus, Trash2, 
   Save, Upload, Share2, Clipboard, LogOut, Check, 
-  AlertCircle, ChevronRight, MessageSquare, Database 
+  AlertCircle, ChevronRight, MessageSquare, Database,
+  Dna, FlaskConical, Syringe, TestTubes, Atom, 
+  Brain, Shield, Moon, Flame, Zap, Sparkles, Microscope,
+  KeyRound
 } from 'lucide-react';
 
-const EXCHANGE_RATE = 454.48;
+const FALLBACK_EXCHANGE_RATE = 454.48;
 
 const CATEGORY_TRANSLATIONS = {
   'Weight Loss & Metabolism': 'Pérdida de peso y metabolismo',
@@ -51,6 +54,7 @@ export default function AdminPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [isDbConnected, setIsDbConnected] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState(FALLBACK_EXCHANGE_RATE);
   
   // CSV Import States
   const [csvDragActive, setCsvDragActive] = useState(false);
@@ -66,6 +70,14 @@ export default function AdminPage() {
   const [shareLang, setShareLang] = useState('es');
   const [shareCurrency, setShareCurrency] = useState('CRC');
   const [shareCopied, setShareCopied] = useState(false);
+
+  // Password change states
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordStatus, setPasswordStatus] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // Auth session check on mount
   useEffect(() => {
@@ -93,6 +105,52 @@ export default function AdminPage() {
       console.log("Supabase not fully configured. Running in Local Simulation Mode.");
     }
   }, []);
+
+  // Fetch live exchange rate
+  useEffect(() => {
+    const fetchRate = async () => {
+      try {
+        const cached = localStorage.getItem('exchangeRate_USDCRC');
+        const cachedTime = localStorage.getItem('exchangeRate_USDCRC_time');
+        if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < 3600000) {
+          setExchangeRate(parseFloat(cached));
+          return;
+        }
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const data = await res.json();
+        if (data.rates && data.rates.CRC) {
+          const rate = data.rates.CRC;
+          setExchangeRate(rate);
+          localStorage.setItem('exchangeRate_USDCRC', rate.toString());
+          localStorage.setItem('exchangeRate_USDCRC_time', Date.now().toString());
+        }
+      } catch (err) {
+        console.error('Admin: Live exchange rate fetch failed:', err);
+      }
+    };
+    fetchRate();
+  }, []);
+
+  // Supabase Realtime subscription for live product sync
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !isAuthenticated) return;
+
+    const channel = supabase
+      .channel('admin-products-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        (payload) => {
+          console.log('Realtime product change detected:', payload.eventType);
+          loadAdminData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated]);
 
   // Fetch admin products and orders
   const loadAdminData = async () => {
@@ -162,7 +220,7 @@ export default function AdminPage() {
                   });
 
                   const usdNum = parseFloat((p.priceUsd || '').replace(/[^0-9.]/g, '')) || 0;
-                  const calculatedCrc = Math.round(usdNum * EXCHANGE_RATE);
+                  const calculatedCrc = Math.round(usdNum * exchangeRate);
 
                   return {
                     id: `local-${idx}`,
@@ -222,7 +280,8 @@ export default function AdminPage() {
     setLoginLoading(true);
 
     // 1. Direct simulation bypass credentials
-    if (email.trim() === 'admin@costapeptides.com' && password === 'CostaPeptides2026!') {
+    const storedPassword = localStorage.getItem('admin_custom_password') || 'CostaPeptides2026!';
+    if (email.trim() === 'info@peptidescostarica.net' && password === storedPassword) {
       setIsAuthenticated(true);
       setLoginLoading(false);
       return;
@@ -255,6 +314,59 @@ export default function AdminPage() {
       await supabase.auth.signOut();
     }
     router.push('/');
+  };
+
+  // Change password handler
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordStatus('');
+    setPasswordLoading(true);
+
+    // Validate
+    if (newPassword.length < 6) {
+      setPasswordStatus('error:Password must be at least 6 characters.');
+      setPasswordLoading(false);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordStatus('error:New passwords do not match.');
+      setPasswordLoading(false);
+      return;
+    }
+
+    // Check current password
+    const storedPassword = localStorage.getItem('admin_custom_password') || 'CostaPeptides2026!';
+    if (currentPassword !== storedPassword) {
+      setPasswordStatus('error:Current password is incorrect.');
+      setPasswordLoading(false);
+      return;
+    }
+
+    // 1. Try Supabase auth update
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) {
+          setPasswordStatus(`error:${error.message}`);
+          setPasswordLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Supabase password update error:', err);
+      }
+    }
+
+    // 2. Update local bypass password
+    localStorage.setItem('admin_custom_password', newPassword);
+    setPasswordStatus('success:Password updated successfully!');
+    setPasswordLoading(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setTimeout(() => {
+      setPasswordStatus('');
+      setShowPasswordModal(false);
+    }, 2000);
   };
 
   // Spreadsheet Cell modification helper
@@ -351,7 +463,7 @@ export default function AdminPage() {
             });
 
             const usdNum = parseFloat((p.priceUsd || '').replace(/[^0-9.]/g, '')) || 0;
-            const calculatedCrc = Math.round(usdNum * EXCHANGE_RATE);
+            const calculatedCrc = Math.round(usdNum * exchangeRate);
 
             return {
               id: `imported-${idx}-${Date.now()}`,
@@ -522,7 +634,26 @@ export default function AdminPage() {
     if (c.includes('supply') || c.includes('suministro')) return '💧';
     if (c.includes('brain') || c.includes('cerebro')) return '🧠';
     if (c.includes('muscle') || c.includes('músculo')) return '💪';
-    return '💊';
+    return '🧪';
+  };
+
+  // Science/peptide themed icon for visual rendering (no pills!)
+  const getCategoryIcon = (cat, size = 20) => {
+    const c = (cat || '').toLowerCase();
+    const props = { size, className: 'category-icon', strokeWidth: 1.8 };
+    if (c.includes('weight') || c.includes('peso') || c.includes('metaboli')) return <Atom {...props} />;
+    if (c.includes('exercise') || c.includes('mimetic')) return <Zap {...props} />;
+    if (c.includes('recovery') || c.includes('healing') || c.includes('recuper')) return <Dna {...props} />;
+    if (c.includes('anti-inflam') || c.includes('antiinflam')) return <Shield {...props} />;
+    if (c.includes('performance') || c.includes('hormon') || c.includes('rendimiento')) return <Syringe {...props} />;
+    if (c.includes('aging') || c.includes('longevity') || c.includes('envejecimiento')) return <TestTubes {...props} />;
+    if (c.includes('immune') || c.includes('inmune') || c.includes('antioxidant')) return <Microscope {...props} />;
+    if (c.includes('cognitive') || c.includes('mood') || c.includes('cognitivo')) return <Brain {...props} />;
+    if (c.includes('sleep') || c.includes('dormir') || c.includes('sueño')) return <Moon {...props} />;
+    if (c.includes('sexual') || c.includes('tanning') || c.includes('bronceado')) return <Flame {...props} />;
+    if (c.includes('skin') || c.includes('hair') || c.includes('piel') || c.includes('cabello')) return <Sparkles {...props} />;
+    if (c.includes('supply') || c.includes('suministro') || c.includes('reconstitution')) return <FlaskConical {...props} />;
+    return <FlaskConical {...props} />;
   };
 
   // Copy shareable link
@@ -547,7 +678,7 @@ export default function AdminPage() {
         <div className="admin-login-container">
           <div className="admin-login-card">
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-              <img src="/logo_transparent.png" alt="Peptides Costa Rica Admin" style={{ maxHeight: '70px', width: 'auto', objectFit: 'contain' }} />
+              <img src="/logo.png" alt="Peptides Costa Rica Admin" style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 2px 16px rgba(0,0,0,0.25)' }} />
             </div>
             <p>Admin Security Dashboard</p>
             
@@ -591,15 +722,26 @@ export default function AdminPage() {
       <nav className="admin-navbar">
         <div className="admin-nav-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '12px' }}>
           <div className="admin-nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src="/logo_transparent.png" alt="Logo" style={{ maxHeight: '42px', width: 'auto', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="Logo" style={{ maxHeight: '38px', width: 'auto', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 1px 8px rgba(0,0,0,0.2)' }} />
             <span className="db-status-badge" style={{ background: '#1e293b', color: '#94a3b8', fontSize: '0.65rem', padding: '4px 8px', borderRadius: '4px' }}>
               {isDbConnected ? 'Live DB' : 'Simulation'}
             </span>
           </div>
-          <button className="admin-logout-btn" onClick={handleLogout} style={{ flexShrink: 0 }}>
-            <LogOut size={14} style={{ display: 'inline', marginRight: '4px' }} />
-            Logout
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button 
+              className="admin-logout-btn" 
+              onClick={() => setShowPasswordModal(true)} 
+              style={{ flexShrink: 0, background: 'rgba(56, 189, 248, 0.1)', borderColor: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}
+              title="Change Password"
+            >
+              <KeyRound size={14} style={{ display: 'inline', marginRight: '4px' }} />
+              Password
+            </button>
+            <button className="admin-logout-btn" onClick={handleLogout} style={{ flexShrink: 0 }}>
+              <LogOut size={14} style={{ display: 'inline', marginRight: '4px' }} />
+              Logout
+            </button>
+          </div>
         </div>
         <div className="admin-nav-actions">
           <button 
@@ -762,7 +904,7 @@ export default function AdminPage() {
                               // Auto calculate CRC price if missing
                               const usdNum = parseFloat(v.replace(/[^0-9.]/g, '')) || 0;
                               if (usdNum > 0 && (!p.priceCrc || p.priceCrc.trim() === '')) {
-                                const calc = Math.round(usdNum * EXCHANGE_RATE);
+                                const calc = Math.round(usdNum * exchangeRate);
                                 handleCellChange(p.id, 'priceCrc', `₡${calc.toLocaleString('en-US')}`);
                               }
                             }}
@@ -819,7 +961,7 @@ export default function AdminPage() {
                               {p.imageUrl && p.imageUrl.startsWith('http') ? (
                                 <img src={p.imageUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                               ) : (
-                                getEmojiForCategory(p.category)
+                                getCategoryIcon(p.category)
                               )}
                             </div>
                             <div 
@@ -1054,6 +1196,89 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="modal active" onClick={() => setShowPasswordModal(false)} style={{ zIndex: 200 }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px', background: '#0e1626', color: '#f8fafc' }}>
+            <button className="close-modal" onClick={() => setShowPasswordModal(false)} style={{ color: '#94a3b8' }}>&times;</button>
+            
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <KeyRound size={36} style={{ color: '#38bdf8', marginBottom: '12px' }} />
+              <h2 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#f8fafc' }}>Change Password</h2>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '6px' }}>Update your admin access password</p>
+            </div>
+
+            {passwordStatus && (
+              <div style={{ 
+                padding: '10px 14px', 
+                borderRadius: '8px', 
+                marginBottom: '16px',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: passwordStatus.startsWith('error') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                border: `1px solid ${passwordStatus.startsWith('error') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)'}`,
+                color: passwordStatus.startsWith('error') ? '#f87171' : '#4ade80'
+              }}>
+                {passwordStatus.startsWith('error') ? <AlertCircle size={16} /> : <Check size={16} />}
+                {passwordStatus.replace(/^(error:|success:)/, '')}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Current Password</label>
+                <input 
+                  type="password" 
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#172237', color: '#f8fafc', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>New Password</label>
+                <input 
+                  type="password" 
+                  required
+                  minLength={6}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#172237', color: '#f8fafc', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Confirm New Password</label>
+                <input 
+                  type="password" 
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter new password"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#172237', color: '#f8fafc', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={passwordLoading}
+                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: 'none', background: '#38bdf8', color: '#050b18', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                {passwordLoading ? (
+                  <div className="sync-spinner" style={{ width: '16px', height: '16px' }}></div>
+                ) : (
+                  <><KeyRound size={16} /> Update Password</>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
