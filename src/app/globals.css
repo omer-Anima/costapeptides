@@ -799,6 +799,122 @@ body {
     color: #ef4444;
 }
 
+/* Cart Suggestions (Amazon-style) */
+.cart-suggestions {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
+.cart-suggestions-title {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.cart-suggestions-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.suggestion-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.suggestion-card:hover {
+    border-color: var(--primary);
+    transform: translateX(2px);
+}
+
+.suggestion-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    overflow: hidden;
+}
+
+.suggestion-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.suggestion-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-price {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.suggestion-add-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.suggestion-add-btn:hover {
+    background: var(--accent);
+    transform: scale(1.1);
+}
+
+/* Nav Cart Button */
+.nav-cart-btn {
+    position: relative !important;
+}
+
+.nav-cart-badge {
+    position: absolute !important;
+    top: -5px !important;
+    right: -5px !important;
+    background: var(--accent) !important;
+    color: white !important;
+    font-size: 0.6rem !important;
+    padding: 1px 5px !important;
+    border-radius: 10px !important;
+    font-weight: bold !important;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1.4;
+    pointer-events: none;
+}
+
 .cart-footer {
     padding: 24px;
     border-top: 1px solid var(--border);
@@ -1191,17 +1307,36 @@ body {
     background: transparent;
     border: none;
     color: #94a3b8;
-    padding: 8px 16px;
+    padding: 8px 14px;
     font-weight: 700;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     transition: all 0.2s;
     border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    position: relative;
+}
+
+.admin-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
 }
 
 .admin-tab-btn.active {
     background: rgba(0, 212, 255, 0.1);
     color: #00D4FF;
+}
+
+.tab-count {
+    color: white;
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 800;
+    line-height: 1.4;
 }
 
 .admin-logout-btn {
@@ -1755,13 +1890,18 @@ body {
         overflow-x: auto;
         padding-bottom: 4px;
         display: flex;
-        gap: 8px;
+        gap: 4px;
+        -webkit-overflow-scrolling: touch;
     }
     
     .admin-tab-btn {
         white-space: nowrap;
-        padding: 8px 12px;
-        font-size: 0.8rem;
+        padding: 8px 10px;
+        font-size: 0.75rem;
+    }
+
+    .admin-tab-btn .tab-label {
+        display: none;
     }
     
     /* Toolbar spacing optimizations */

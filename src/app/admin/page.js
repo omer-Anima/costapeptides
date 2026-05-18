@@ -10,7 +10,7 @@ import {
   AlertCircle, ChevronRight, MessageSquare, Database,
   Dna, FlaskConical, Syringe, TestTubes, Atom, 
   Brain, Shield, Moon, Flame, Zap, Sparkles, Microscope,
-  KeyRound
+  KeyRound, ShoppingCart, Table, ClipboardList, Link2
 } from 'lucide-react';
 
 const FALLBACK_EXCHANGE_RATE = 454.48;
@@ -771,25 +771,31 @@ export default function AdminPage() {
             className={`admin-tab-btn ${activeTab === 'spreadsheet' ? 'active' : ''}`}
             onClick={() => setActiveTab('spreadsheet')}
           >
-            Spreadsheet Editor
+            <Table size={14} />
+            <span className="tab-label">Products</span>
           </button>
           <button 
             className={`admin-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
             onClick={() => setActiveTab('orders')}
           >
-            Orders History {orders.length > 0 && <span style={{ background: '#ef4444', color: 'white', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>{orders.length}</span>}
+            <ClipboardList size={14} />
+            <span className="tab-label">Orders</span>
+            {orders.length > 0 && <span className="tab-count" style={{ background: '#ef4444' }}>{orders.length}</span>}
           </button>
           <button 
             className={`admin-tab-btn ${activeTab === 'share' ? 'active' : ''}`}
             onClick={() => setActiveTab('share')}
           >
-            Share Links
+            <Link2 size={14} />
+            <span className="tab-label">Share</span>
           </button>
           <button 
             className={`admin-tab-btn ${activeTab === 'abandoned' ? 'active' : ''}`}
             onClick={() => setActiveTab('abandoned')}
           >
-            Abandoned Carts {abandonedCarts.length > 0 && <span style={{ background: '#f59e0b', color: 'white', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>{abandonedCarts.length}</span>}
+            <ShoppingCart size={14} />
+            <span className="tab-label">Carts</span>
+            {abandonedCarts.length > 0 && <span className="tab-count" style={{ background: '#f59e0b' }}>{abandonedCarts.length}</span>}
           </button>
         </div>
       </nav>

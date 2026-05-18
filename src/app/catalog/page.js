@@ -439,6 +439,32 @@ export default function CatalogPage() {
     setTimeout(() => setCartAnimating(false), 800);
   };
 
+  // Get product suggestions based on cart items (Amazon-style)
+  const getSuggestions = () => {
+    if (cart.length === 0 || products.length === 0) return [];
+    const cartProductNames = new Set(cart.map(c => c.product));
+    const cartCategories = new Set(cart.map(c => c.category).filter(Boolean));
+    
+    // Find in-stock products from same categories, not already in cart
+    let suggestions = products.filter(p => 
+      !cartProductNames.has(p.product) && 
+      isInStock(p.status) && 
+      cartCategories.has(p.category)
+    );
+    
+    // If not enough, add other in-stock products
+    if (suggestions.length < 3) {
+      const more = products.filter(p => 
+        !cartProductNames.has(p.product) && 
+        isInStock(p.status) && 
+        !cartCategories.has(p.category)
+      );
+      suggestions = [...suggestions, ...more];
+    }
+    
+    return suggestions.slice(0, 4);
+  };
+
   const updateCartQty = (productName, change) => {
     setCart(cart.map(item => {
       if (item.product === productName) {
@@ -877,6 +903,35 @@ export default function CatalogPage() {
             ))
           )}
         </div>
+
+        {/* Suggestions Section */}
+        {cart.length > 0 && getSuggestions().length > 0 && !orderSuccess && (
+          <div className="cart-suggestions">
+            <h4 className="cart-suggestions-title">
+              {lang === 'en' ? '✨ You might also like' : '✨ También te puede interesar'}
+            </h4>
+            <div className="cart-suggestions-scroll">
+              {getSuggestions().map((sug, idx) => (
+                <div key={idx} className="suggestion-card" onClick={() => {
+                  addToCart(sug);
+                }}>
+                  <div className="suggestion-icon">
+                    {sug.imageUrl ? (
+                      <img src={sug.imageUrl} alt={sug.product} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+                    ) : getCategoryIcon(sug.category, 20)}
+                  </div>
+                  <div className="suggestion-info">
+                    <span className="suggestion-name">{sug.product}</span>
+                    <span className="suggestion-price">{currency === 'USD' ? sug.priceUsd : sug.priceCrc}</span>
+                  </div>
+                  <button className="suggestion-add-btn" title={lang === 'en' ? 'Add' : 'Añadir'}>
+                    <Plus size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {cart.length > 0 && !orderSuccess && (
           <div className="cart-footer">
