@@ -1614,6 +1614,29 @@ body {
     background: rgba(239, 68, 68, 0.15);
 }
 
+/* Move row up/down buttons */
+.admin-move-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.admin-move-btn:hover:not(:disabled) {
+    background: rgba(0, 212, 255, 0.12);
+    color: #00D4FF;
+}
+
+.admin-move-btn:disabled {
+    cursor: default;
+}
+
 /* Orders List Layout */
 .orders-grid {
     display: flex;

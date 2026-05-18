@@ -7,7 +7,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { 
   Lock, LayoutDashboard, ListFilter, Plus, Trash2, 
   Save, Upload, Share2, Clipboard, LogOut, Check, 
-  AlertCircle, ChevronRight, MessageSquare, Database,
+  AlertCircle, ChevronRight, ChevronUp, ChevronDown, MessageSquare, Database,
   Dna, FlaskConical, Syringe, TestTubes, Atom, 
   Brain, Shield, Moon, Flame, Zap, Sparkles, Microscope,
   KeyRound, ShoppingCart, Table, ClipboardList, Link2
@@ -463,6 +463,18 @@ export default function AdminPage() {
   // Delete row
   const handleDeleteRow = (productId) => {
     setProducts(products.filter(p => p.id !== productId));
+  };
+
+  // Move row up or down
+  const handleMoveRow = (index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= products.length) return;
+    const updated = [...products];
+    const [moved] = updated.splice(index, 1);
+    updated.splice(newIndex, 0, moved);
+    // Update priority values so the order persists on save
+    const withPriority = updated.map((p, i) => ({ ...p, priority: i }));
+    setProducts(withPriority);
   };
 
   // CSV drag uploader
@@ -1008,7 +1020,7 @@ export default function AdminPage() {
                       <th style={{ minWidth: '180px' }}>Volume/Bulk Discount Info</th>
                       <th style={{ minWidth: '200px' }}>Image URL / Physical Upload</th>
                       <th style={{ minWidth: '220px' }}>COA URL Link</th>
-                      <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
+                      <th style={{ width: '100px', textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1156,9 +1168,29 @@ export default function AdminPage() {
 
                         {/* Actions */}
                         <td data-label="Action" style={{ textAlign: 'center' }}>
-                          <button className="admin-delete-btn" onClick={() => handleDeleteRow(p.id)}>
-                            <Trash2 size={14} />
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                            <button
+                              className="admin-move-btn"
+                              title="Move Up"
+                              onClick={() => handleMoveRow(idx, -1)}
+                              disabled={idx === 0}
+                              style={{ opacity: idx === 0 ? 0.25 : 1 }}
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+                            <button
+                              className="admin-move-btn"
+                              title="Move Down"
+                              onClick={() => handleMoveRow(idx, 1)}
+                              disabled={idx === products.length - 1}
+                              style={{ opacity: idx === products.length - 1 ? 0.25 : 1 }}
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                            <button className="admin-delete-btn" onClick={() => handleDeleteRow(p.id)}>
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
