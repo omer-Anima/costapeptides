@@ -279,33 +279,35 @@ export default function AdminPage() {
     setLoginError('');
     setLoginLoading(true);
 
-    // 1. Direct simulation bypass credentials
-    const storedPassword = localStorage.getItem('admin_custom_password') || 'CostaPeptides2026!';
-    if (email.trim() === 'info@peptidescostarica.net' && password === storedPassword) {
-      setIsAuthenticated(true);
-      setLoginLoading(false);
-      return;
-    }
+    // 1. Try Supabase Auth First
+    let authSuccess = false;
+    let authErrorMessage = '';
 
-    // 2. Try Supabase Auth
     if (isSupabaseConfigured && supabase) {
       try {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password
         });
-
-        if (error) {
-          setLoginError(error.message);
+        if (!error) {
+          authSuccess = true;
         } else {
-          setIsAuthenticated(true);
+          authErrorMessage = error.message;
         }
       } catch (err) {
-        setLoginError("Login service currently unavailable.");
+        authErrorMessage = "Login service currently unavailable.";
       }
-    } else {
-      setLoginError("Invalid admin credentials.");
     }
+
+    // 2. Direct simulation bypass fallback
+    const storedPassword = localStorage.getItem('admin_custom_password') || 'CostaPeptides2026!';
+    if (authSuccess || (email.trim() === 'info@peptidescostarica.net' && password === storedPassword)) {
+      setIsAuthenticated(true);
+      setLoginError('');
+    } else {
+      setLoginError(authErrorMessage || "Invalid admin credentials.");
+    }
+
     setLoginLoading(false);
   };
 
