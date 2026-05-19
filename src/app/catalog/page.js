@@ -638,7 +638,7 @@ export default function CatalogPage() {
   }
 
   return (
-    <div id="app" className="min-h-screen">
+    <div id="app" className="min-h-screen" suppressHydrationWarning>
       {/* Static Top Header Section */}
       <header className="header-top-section">
         <div className="header-top container">

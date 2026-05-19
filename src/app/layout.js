@@ -14,6 +14,7 @@ const inter = Inter({
 });
 
 export const metadata = {
+  metadataBase: new URL('https://peptidescostarica.net'),
   title: "Peptides Costa Rica | Catálogo Premium",
   description: "Catálogo premium de péptidos para Peptides Costa Rica. Explore nuestra selección de alta calidad con precios y disponibilidad en tiempo real.",
   openGraph: {
