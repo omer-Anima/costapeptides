@@ -1021,6 +1021,14 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="spreadsheet-container">
+                <datalist id="category-options">
+                  {Array.from(new Set([
+                    ...Object.keys(CATEGORY_TRANSLATIONS),
+                    ...products.map(p => p.category).filter(Boolean)
+                  ])).sort().map(cat => (
+                    <option key={cat} value={cat} />
+                  ))}
+                </datalist>
                 <table className="spreadsheet-table">
                   <thead>
                     <tr>
@@ -1055,15 +1063,14 @@ export default function AdminPage() {
 
                         {/* Category */}
                         <td data-label="Category">
-                          <select 
+                          <input 
+                            type="text"
+                            list="category-options"
                             className="cell-select"
                             value={p.category}
                             onChange={(e) => handleCellChange(p.id, 'category', e.target.value)}
-                          >
-                            {Object.keys(CATEGORY_TRANSLATIONS).map(cat => (
-                              <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                          </select>
+                            placeholder="Select or type new..."
+                          />
                         </td>
 
                         {/* USD Price */}
