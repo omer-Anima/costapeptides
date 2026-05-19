@@ -1021,14 +1021,6 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="spreadsheet-container">
-                <datalist id="category-options">
-                  {Array.from(new Set([
-                    ...Object.keys(CATEGORY_TRANSLATIONS),
-                    ...products.map(p => p.category).filter(Boolean)
-                  ])).sort().map(cat => (
-                    <option key={cat} value={cat} />
-                  ))}
-                </datalist>
                 <table className="spreadsheet-table">
                   <thead>
                     <tr>
@@ -1063,14 +1055,29 @@ export default function AdminPage() {
 
                         {/* Category */}
                         <td data-label="Category">
-                          <input 
-                            type="text"
-                            list="category-options"
+                          <select 
                             className="cell-select"
                             value={p.category}
-                            onChange={(e) => handleCellChange(p.id, 'category', e.target.value)}
-                            placeholder="English / Español (e.g. Hair / Cabello)"
-                          />
+                            onChange={(e) => {
+                              if (e.target.value === '__ADD_NEW__') {
+                                const newCat = window.prompt("Enter new category (Format: English / Español):");
+                                if (newCat && newCat.trim() !== "") {
+                                  handleCellChange(p.id, 'category', newCat.trim());
+                                }
+                              } else {
+                                handleCellChange(p.id, 'category', e.target.value);
+                              }
+                            }}
+                          >
+                            {Array.from(new Set([
+                              ...Object.keys(CATEGORY_TRANSLATIONS),
+                              ...products.map(prod => prod.category).filter(Boolean)
+                            ])).sort().map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                            <option disabled>──────────</option>
+                            <option value="__ADD_NEW__">➕ Create New Category...</option>
+                          </select>
                         </td>
 
                         {/* USD Price */}
