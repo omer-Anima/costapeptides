@@ -373,6 +373,16 @@ export default function CatalogPage() {
   };
 
   const translateCategory = (catText) => {
+    if (!catText) return '';
+    
+    // Auto-translation for custom categories using the slash format (e.g., "Hair Growth / Crecimiento del cabello")
+    if (catText.includes('/')) {
+      const parts = catText.split('/').map(p => p.trim());
+      if (parts.length >= 2) {
+        return lang === 'en' ? parts[0] : parts[1];
+      }
+    }
+
     if (lang === 'es' && CATEGORY_TRANSLATIONS[catText]) {
       return CATEGORY_TRANSLATIONS[catText];
     }

@@ -1069,7 +1069,7 @@ export default function AdminPage() {
                             className="cell-select"
                             value={p.category}
                             onChange={(e) => handleCellChange(p.id, 'category', e.target.value)}
-                            placeholder="Select or type new..."
+                            placeholder="English / Español (e.g. Hair / Cabello)"
                           />
                         </td>
 
