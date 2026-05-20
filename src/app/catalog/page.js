@@ -106,6 +106,7 @@ export default function CatalogPage() {
   // Checkout inputs
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('whatsapp');
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [cartAnimating, setCartAnimating] = useState(false);
@@ -560,6 +561,7 @@ export default function CatalogPage() {
             total_usd: currency === 'USD' ? totalVal : Math.round(totalVal / exchangeRate),
             total_crc: currency === 'CRC' ? totalVal : Math.round(totalVal * exchangeRate),
             currency: currency,
+            payment_method: paymentMethod,
             status: 'Pending'
           });
 
@@ -595,9 +597,22 @@ export default function CatalogPage() {
       ? `\n\n*TOTAL DUE:* *${formatPriceVal(totalVal, currency)}*`
       : `\n\n*TOTAL A PAGAR:* *${formatPriceVal(totalVal, currency)}*`;
 
-    const instructionsText = lang === 'en'
-      ? `\n\n_Thank you for your order! We will verify stock availability and coordinate dispatch details immediately._`
-      : `\n\n_¡Muchas gracias por su orden! Verificaremos disponibilidad y coordinaremos el despacho de inmediato._`;
+    let instructionsText = '';
+    if (paymentMethod === 'paypal') {
+      const usdTotal = currency === 'USD' ? totalVal : Math.round(totalVal / exchangeRate);
+      instructionsText = lang === 'en'
+        ? `\n\n*Payment Method: PayPal*\n_Please send $${usdTotal} USD via PayPal to:_\n👉 *jgw899@gmail.com*\n\n_We will verify your payment and coordinate dispatch details immediately._`
+        : `\n\n*Método de Pago: PayPal*\n_Por favor envíe $${usdTotal} USD vía PayPal a:_\n👉 *jgw899@gmail.com*\n\n_Verificaremos su pago y coordinaremos el despacho de inmediato._`;
+    } else if (paymentMethod === 'sinpe') {
+      const crcTotal = currency === 'CRC' ? totalVal : Math.round(totalVal * exchangeRate);
+      instructionsText = lang === 'en'
+        ? `\n\n*Payment Method: SINPE Móvil*\n_Please send ₡${crcTotal.toLocaleString('en-US')} CRC via SINPE to:_\n👉 *+506 8888-8888 (Name here)*\n\n_Please send the screenshot of the transfer to verify and coordinate dispatch._`
+        : `\n\n*Método de Pago: SINPE Móvil*\n_Por favor envíe ₡${crcTotal.toLocaleString('en-US')} CRC por SINPE a:_\n👉 *+506 8888-8888 (Name here)*\n\n_Por favor envíe el comprobante por aquí para verificar y coordinar el despacho._`;
+    } else {
+      instructionsText = lang === 'en'
+        ? `\n\n*Payment Method: WhatsApp Coordination*\n_Thank you for your order! We will verify stock availability and coordinate dispatch and payment details immediately._`
+        : `\n\n*Método de Pago: Coordinación por WhatsApp*\n_¡Muchas gracias por su orden! Verificaremos disponibilidad y coordinaremos el despacho y pago de inmediato._`;
+    }
 
     const fullMessage = encodeURIComponent(`${receiptHeader}${receiptDetails}${itemReceipts}${totalReceipt}${instructionsText}`);
     const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${fullMessage}`;
@@ -1056,6 +1071,16 @@ export default function CatalogPage() {
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
               />
+              <select
+                className="checkout-input"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                style={{ appearance: 'auto' }}
+              >
+                <option value="whatsapp">{lang === 'en' ? 'Pay via WhatsApp Coordination' : 'Pago vía Coordinación por WhatsApp'}</option>
+                <option value="sinpe">{lang === 'en' ? 'Pay via SINPE Móvil' : 'Pago vía SINPE Móvil'}</option>
+                <option value="paypal">{lang === 'en' ? 'Pay via PayPal' : 'Pago vía PayPal'}</option>
+              </select>
               <button 
                 type="submit" 
                 className="whatsapp-btn"

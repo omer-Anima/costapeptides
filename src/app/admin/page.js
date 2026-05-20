@@ -1409,6 +1409,9 @@ export default function AdminPage() {
                               : `₡${order.total_crc.toLocaleString('en-US')}`
                             }
                           </span>
+                          <span style={{ marginLeft: '12px', fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 8px', borderRadius: '12px', background: 'rgba(255,255,255,0.1)', color: '#94a3b8' }}>
+                            {order.payment_method === 'paypal' ? '💳 PayPal' : order.payment_method === 'sinpe' ? '📱 SINPE Móvil' : '💬 WhatsApp'}
+                          </span>
                         </div>
                         
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
