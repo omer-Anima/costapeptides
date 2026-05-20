@@ -10,7 +10,7 @@ import {
   AlertCircle, ChevronRight, ChevronUp, ChevronDown, MessageSquare, Database,
   Dna, FlaskConical, Syringe, TestTubes, Atom, 
   Brain, Shield, Moon, Flame, Zap, Sparkles, Microscope,
-  KeyRound, ShoppingCart, Table, ClipboardList, Link2
+  KeyRound, ShoppingCart, Table, ClipboardList, Link2, Star, FileText
 } from 'lucide-react';
 
 const FALLBACK_EXCHANGE_RATE = 454.48;
