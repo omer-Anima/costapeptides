@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS public.products (
     coa TEXT,
     image_url TEXT,
     emoji TEXT,
+    description_en TEXT,
+    description_es TEXT,
     priority INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -166,4 +168,62 @@ CREATE POLICY "Admin Delete Product Pics"
 ON storage.objects FOR DELETE 
 TO authenticated 
 USING (bucket_id = 'product-pics');
+
+
+-- =========================================================================
+-- 5. PRODUCT REVIEWS TABLE
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.product_reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_name TEXT NOT NULL,
+    customer_name TEXT NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    status TEXT NOT NULL DEFAULT 'Pending',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Enable Row Level Security (RLS) for public.product_reviews
+ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist to allow safe re-runs
+DROP POLICY IF EXISTS "Allow public insert access to reviews" ON public.product_reviews;
+DROP POLICY IF EXISTS "Allow public read access to approved reviews" ON public.product_reviews;
+DROP POLICY IF EXISTS "Allow authenticated read access to all reviews" ON public.product_reviews;
+DROP POLICY IF EXISTS "Allow authenticated update access to reviews" ON public.product_reviews;
+DROP POLICY IF EXISTS "Allow authenticated delete access to reviews" ON public.product_reviews;
+
+-- Insert policy: Anyone can submit a review
+CREATE POLICY "Allow public insert access to reviews" 
+ON public.product_reviews FOR INSERT 
+WITH CHECK (true);
+
+-- Select policy: Public can only see Approved reviews
+CREATE POLICY "Allow public read access to approved reviews" 
+ON public.product_reviews FOR SELECT 
+USING (status = 'Approved');
+
+-- Authenticated policies: Logged-in admins can view, update (approve), or delete all reviews
+CREATE POLICY "Allow authenticated read access to all reviews" 
+ON public.product_reviews FOR SELECT 
+TO authenticated 
+USING (true);
+
+CREATE POLICY "Allow authenticated update access to reviews" 
+ON public.product_reviews FOR UPDATE 
+TO authenticated 
+USING (true) 
+WITH CHECK (true);
+
+CREATE POLICY "Allow authenticated delete access to reviews" 
+ON public.product_reviews FOR DELETE 
+TO authenticated 
+USING (true);
+
+
+-- =========================================================================
+-- RUN THIS IF YOU ALREADY CREATED THE PRODUCTS TABLE
+-- =========================================================================
+-- ALTER TABLE public.products ADD COLUMN IF NOT EXISTS description_en TEXT;
+-- ALTER TABLE public.products ADD COLUMN IF NOT EXISTS description_es TEXT;
 

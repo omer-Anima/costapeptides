@@ -1771,6 +1771,103 @@ body {
     white-space: nowrap;
 }
 
+/* Product Reviews */
+.product-rating-summary {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.star-icon {
+    color: #fbbf24;
+}
+.reviews-section {
+    margin-top: 24px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 24px;
+}
+.reviews-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.reviews-header h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+.review-card {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-color);
+}
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.review-author {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+.review-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.review-rating {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 6px;
+}
+.review-comment {
+    font-size: 0.85rem;
+    color: var(--text-main);
+    line-height: 1.4;
+}
+.write-review-form {
+    background: var(--bg-secondary);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid var(--primary);
+}
+.review-input, .review-textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+.review-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+.star-rating-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.star-rating-input button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.1s;
+}
+.star-rating-input button:hover {
+    transform: scale(1.1);
+}
+
 /* Spinners & indicators */
 .sync-spinner {
     width: 20px;

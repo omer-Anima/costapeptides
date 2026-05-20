@@ -111,6 +111,15 @@ export default function CatalogPage() {
   const [cartAnimating, setCartAnimating] = useState(false);
   const [sessionId, setSessionId] = useState('');
 
+  // Reviews States
+  const [reviews, setReviews] = useState([]);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
+  const [reviewName, setReviewName] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+
   // Local storage & URL params setup on mount
   useEffect(() => {
     // URL overrides
@@ -258,10 +267,21 @@ export default function CatalogPage() {
             status: item.status,
             coa: item.coa,
             imageUrl: item.image_url,
+            descriptionEn: item.description_en || '',
+            descriptionEs: item.description_es || '',
             emoji: item.emoji || getEmojiForCategory(item.category)
           }));
           dbConnected = true;
           setIsDbBacked(true);
+        }
+        
+        // Fetch Reviews
+        const { data: revData } = await supabase
+          .from('product_reviews')
+          .select('*')
+          .eq('status', 'Approved');
+        if (revData) {
+          setReviews(revData);
         }
       } catch (err) {
         console.error("Supabase load error, falling back to local spreadsheet CSV...", err);
@@ -316,6 +336,8 @@ export default function CatalogPage() {
                     status: p.status || 'In Stock',
                     coa: p.coa || '',
                     imageUrl: p.imageUrl || '',
+                    descriptionEn: '',
+                    descriptionEs: '',
                     emoji: getEmojiForCategory(p.category || '')
                   };
                 });
@@ -407,6 +429,19 @@ export default function CatalogPage() {
       if (prod.priceCrc) return parsePrice(prod.priceCrc);
       return Math.round(parsePrice(prod.priceUsd) * exchangeRate);
     }
+  };
+
+  const renderRatingSummary = (productName) => {
+    const prodReviews = reviews.filter(r => r.product_name === productName);
+    if (prodReviews.length === 0) return null;
+    const avg = prodReviews.reduce((sum, r) => sum + r.rating, 0) / prodReviews.length;
+    return (
+      <div className="product-rating-summary">
+        <Star size={12} fill="#fbbf24" color="#fbbf24" />
+        <span style={{ fontWeight: 600 }}>{avg.toFixed(1)}</span>
+        <span>({prodReviews.length})</span>
+      </div>
+    );
   };
 
   // Active toggles
@@ -580,6 +615,41 @@ export default function CatalogPage() {
       setOrderSuccess(false);
       setIsCartOpen(false);
     }, 4000);
+  };
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    if (!reviewName || !reviewComment) return;
+    
+    setReviewSubmitting(true);
+    
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase
+          .from('product_reviews')
+          .insert({
+            product_name: selectedProduct.product,
+            customer_name: reviewName,
+            rating: reviewRating,
+            comment: reviewComment,
+            status: 'Pending'
+          });
+          
+        if (!error) {
+          setReviewSuccess(true);
+          setReviewName('');
+          setReviewComment('');
+          setReviewRating(5);
+          setTimeout(() => {
+            setReviewSuccess(false);
+            setReviewFormOpen(false);
+          }, 3000);
+        }
+      } catch (err) {
+        console.error("Failed to submit review:", err);
+      }
+    }
+    setReviewSubmitting(false);
   };
 
   // Categories
@@ -854,6 +924,7 @@ export default function CatalogPage() {
                   <div className="product-info">
                     <div className="product-category">{translateCategory(p.category)}</div>
                     <h3 className="product-name">{p.product}</h3>
+                    {renderRatingSummary(p.product)}
                     <div className="product-pricing">
                       <span className="price-main">{pMain}</span>
                       {pSub && <span className="price-sub">{pSub}</span>}
@@ -1043,6 +1114,12 @@ export default function CatalogPage() {
               )}
             </div>
 
+            {((lang === 'en' && selectedProduct.descriptionEn) || (lang === 'es' && selectedProduct.descriptionEs)) && (
+              <div style={{ marginBottom: '24px', lineHeight: '1.6', fontSize: '0.88rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: '20px', whiteSpace: 'pre-line' }}>
+                {lang === 'en' ? selectedProduct.descriptionEn : selectedProduct.descriptionEs}
+              </div>
+            )}
+
             <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                 {lang === 'en' ? 'Status' : 'Estado'}
@@ -1073,6 +1150,92 @@ export default function CatalogPage() {
                 {lang === 'en' ? 'Add to Cart' : 'Añadir al Carrito'}
               </button>
             )}
+
+            {/* REVIEWS SECTION */}
+            <div className="reviews-section">
+              <div className="reviews-header">
+                <h3>{lang === 'en' ? 'Customer Reviews' : 'Reseñas de Clientes'}</h3>
+                <button 
+                  className="btn-outline" 
+                  style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                  onClick={() => setReviewFormOpen(!reviewFormOpen)}
+                >
+                  {reviewFormOpen ? (lang === 'en' ? 'Cancel' : 'Cancelar') : (lang === 'en' ? 'Write a Review' : 'Escribir Reseña')}
+                </button>
+              </div>
+
+              {reviewFormOpen && (
+                <form className="write-review-form" onSubmit={handleReviewSubmit}>
+                  {reviewSuccess ? (
+                    <div style={{ textAlign: 'center', color: '#4ade80', padding: '10px 0' }}>
+                      <Check size={32} style={{ margin: '0 auto 8px auto' }} />
+                      <p style={{ fontWeight: 'bold' }}>{lang === 'en' ? 'Review submitted for approval!' : '¡Reseña enviada para aprobación!'}</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="star-rating-input">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <button 
+                            type="button" 
+                            key={star} 
+                            onClick={() => setReviewRating(star)}
+                          >
+                            <Star size={24} fill={star <= reviewRating ? '#fbbf24' : 'transparent'} color="#fbbf24" strokeWidth={1.5} />
+                          </button>
+                        ))}
+                      </div>
+                      <input 
+                        type="text" 
+                        className="review-input" 
+                        placeholder={lang === 'en' ? 'Your Name' : 'Su Nombre'} 
+                        value={reviewName}
+                        onChange={e => setReviewName(e.target.value)}
+                        required
+                      />
+                      <textarea 
+                        className="review-textarea" 
+                        placeholder={lang === 'en' ? 'Share your experience...' : 'Comparta su experiencia...'}
+                        value={reviewComment}
+                        onChange={e => setReviewComment(e.target.value)}
+                        required
+                      />
+                      <button 
+                        type="submit" 
+                        className="whatsapp-btn" 
+                        style={{ border: 'none', padding: '10px' }}
+                        disabled={reviewSubmitting}
+                      >
+                        {reviewSubmitting ? <div className="sync-spinner" style={{ width: '16px', height: '16px' }}></div> : (lang === 'en' ? 'Submit Review' : 'Enviar Reseña')}
+                      </button>
+                    </>
+                  )}
+                </form>
+              )}
+
+              {reviews.filter(r => r.product_name === selectedProduct.product).length === 0 ? (
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', margin: '20px 0' }}>
+                  {lang === 'en' ? 'No reviews yet. Be the first!' : 'Aún no hay reseñas. ¡Sé el primero!'}
+                </p>
+              ) : (
+                <div className="reviews-list">
+                  {reviews.filter(r => r.product_name === selectedProduct.product).map(r => (
+                    <div key={r.id} className="review-card">
+                      <div className="review-header">
+                        <span className="review-author">{r.customer_name}</span>
+                        <span className="review-date">{new Date(r.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <div className="review-rating">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <Star key={star} size={12} fill={star <= r.rating ? '#fbbf24' : 'transparent'} color="#fbbf24" />
+                        ))}
+                      </div>
+                      <p className="review-comment">{r.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
           </div>
         </div>
       )}

@@ -56,6 +56,8 @@ export default function AdminPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingAbandonedCarts, setLoadingAbandonedCarts] = useState(true);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
   const [isDbConnected, setIsDbConnected] = useState(false);
   const [exchangeRate, setExchangeRate] = useState(FALLBACK_EXCHANGE_RATE);
   
@@ -68,6 +70,12 @@ export default function AdminPage() {
   // Operation statuses
   const [saveStatus, setSaveStatus] = useState('');
   const [saveLoading, setSaveLoading] = useState(false);
+
+  // Edit Description Modal States
+  const [editDescModalOpen, setEditDescModalOpen] = useState(false);
+  const [editDescProduct, setEditDescProduct] = useState(null);
+  const [editDescEn, setEditDescEn] = useState('');
+  const [editDescEs, setEditDescEs] = useState('');
 
   // Link share builder states
   const [shareLang, setShareLang] = useState('es');
@@ -185,6 +193,8 @@ export default function AdminPage() {
             status: item.status || 'In Stock',
             coa: item.coa || '',
             imageUrl: item.image_url || '',
+            descriptionEn: item.description_en || '',
+            descriptionEs: item.description_es || '',
             priority: item.priority || 0
           }));
           setIsDbConnected(true);
@@ -240,6 +250,8 @@ export default function AdminPage() {
                     status: p.status || 'In Stock',
                     coa: p.coa || '',
                     imageUrl: p.imageUrl || '',
+                    descriptionEn: '',
+                    descriptionEs: '',
                     priority: idx
                   };
                 });
@@ -291,6 +303,24 @@ export default function AdminPage() {
       }
     }
     setLoadingAbandonedCarts(false);
+
+    // 4. Fetch Reviews
+    setLoadingReviews(true);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('product_reviews')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          setReviews(data);
+        }
+      } catch (err) {
+        console.error("Failed to load reviews:", err);
+      }
+    }
+    setLoadingReviews(false);
   };
 
   // Trigger loading when authenticated
@@ -745,6 +775,8 @@ export default function AdminPage() {
             status: p.status,
             coa: p.coa,
             image_url: p.imageUrl,
+            description_en: p.descriptionEn || '',
+            description_es: p.descriptionEs || '',
             emoji: p.imageUrl ? '' : getEmojiForCategory(p.category),
             priority: idx
           };
@@ -797,6 +829,27 @@ export default function AdminPage() {
     if (c.includes('brain') || c.includes('cerebro')) return '🧠';
     if (c.includes('muscle') || c.includes('músculo')) return '💪';
     return '🧪';
+  };
+
+  const handleApproveReview = async (id) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase.from('product_reviews').update({ status: 'Approved' }).eq('id', id);
+      if (!error) {
+        setReviews(reviews.map(r => r.id === id ? { ...r, status: 'Approved' } : r));
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteReview = async (id) => {
+    if (!supabase) return;
+    if (!confirm('Are you sure you want to delete this review?')) return;
+    try {
+      const { error } = await supabase.from('product_reviews').delete().eq('id', id);
+      if (!error) {
+        setReviews(reviews.filter(r => r.id !== id));
+      }
+    } catch (err) { console.error(err); }
   };
 
   // Science/peptide themed icon for visual rendering (no pills!)
@@ -936,6 +989,14 @@ export default function AdminPage() {
             <span className="tab-label">Carts</span>
             {abandonedCarts.length > 0 && <span className="tab-count" style={{ background: '#f59e0b' }}>{abandonedCarts.length}</span>}
           </button>
+          <button 
+            className={`admin-tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reviews')}
+          >
+            <Star size={14} />
+            <span className="tab-label">Reviews</span>
+            {reviews.filter(r => r.status === 'Pending').length > 0 && <span className="tab-count" style={{ background: '#3b82f6' }}>{reviews.filter(r => r.status === 'Pending').length}</span>}
+          </button>
         </div>
       </nav>
 
@@ -1033,6 +1094,7 @@ export default function AdminPage() {
                       <th style={{ minWidth: '180px' }}>Volume/Bulk Discount Info</th>
                       <th style={{ minWidth: '200px' }}>Image URL / Physical Upload</th>
                       <th style={{ minWidth: '220px' }}>COA URL Link</th>
+                      <th style={{ width: '120px', textAlign: 'center' }}>Info/Blog</th>
                       <th style={{ width: '100px', textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
@@ -1191,6 +1253,23 @@ export default function AdminPage() {
                           >
                             {p.coa}
                           </div>
+                        </td>
+
+                        {/* Info/Blog description edit button */}
+                        <td data-label="Info/Blog" style={{ textAlign: 'center' }}>
+                          <button
+                            className="admin-btn"
+                            style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', margin: '0 auto' }}
+                            onClick={() => {
+                              setEditDescProduct(p);
+                              setEditDescEn(p.descriptionEn || '');
+                              setEditDescEs(p.descriptionEs || '');
+                              setEditDescModalOpen(true);
+                            }}
+                          >
+                            <FileText size={12} />
+                            <span>Edit Info</span>
+                          </button>
                         </td>
 
                         {/* Actions */}
@@ -1474,6 +1553,66 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {/* TAB: REVIEWS MODERATION */}
+        {activeTab === 'reviews' && (
+          <div className="admin-orders-tab">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+              <h2 style={{ fontSize: '1.25rem', color: '#f8fafc', margin: 0 }}>⭐ Product Reviews Moderation</h2>
+              <button className="admin-btn" onClick={loadAdminData} style={{ padding: '6px 14px', fontSize: '0.85rem', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', color: '#38bdf8', borderRadius: '8px', cursor: 'pointer', fontWeight: '700' }}>
+                Refresh
+              </button>
+            </div>
+            
+            {loadingReviews ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading reviews...</div>
+            ) : reviews.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', background: '#0e1626', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+                No reviews found.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {reviews.map(r => (
+                  <div key={r.id} style={{ background: '#0e1626', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 4px 6px rgba(0,0,0,0.2)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: '#f8fafc' }}>{r.product_name}</h3>
+                        <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                          Author: {r.customer_name} | {new Date(r.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ background: r.status === 'Approved' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(59, 130, 246, 0.15)', color: r.status === 'Approved' ? '#4ade80' : '#3b82f6', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-block', marginBottom: '6px' }}>
+                          {r.status}
+                        </div>
+                        <div style={{ display: 'flex', gap: '2px', justifyContent: 'flex-end' }}>
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <Star key={star} size={14} fill={star <= r.rating ? '#fbbf24' : 'transparent'} color="#fbbf24" />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p style={{ fontSize: '0.9rem', color: '#cbd5e1', marginBottom: '16px', lineHeight: '1.5' }}>
+                      "{r.comment}"
+                    </p>
+                    
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      {r.status !== 'Approved' && (
+                        <button onClick={() => handleApproveReview(r.id)} style={{ padding: '6px 12px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                          Approve
+                        </button>
+                      )}
+                      <button onClick={() => handleDeleteReview(r.id)} style={{ padding: '6px 12px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Change Password Modal */}
@@ -1555,6 +1694,67 @@ export default function AdminPage() {
                 )}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Description Modal */}
+      {editDescModalOpen && editDescProduct && (
+        <div className="modal active" onClick={() => setEditDescModalOpen(false)} style={{ zIndex: 200 }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', background: '#0e1626', color: '#f8fafc' }}>
+            <button className="close-modal" onClick={() => setEditDescModalOpen(false)} style={{ color: '#94a3b8' }}>&times;</button>
+            
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <FileText size={36} style={{ color: '#38bdf8', marginBottom: '8px' }} />
+              <h2 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#f8fafc' }}>Edit Product Information / Blog</h2>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>{editDescProduct.product}</p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>
+                  English Description / Information
+                </label>
+                <textarea
+                  value={editDescEn}
+                  onChange={(e) => setEditDescEn(e.target.value)}
+                  placeholder="Enter detailed scientific info, uses, benefits, and research details in English..."
+                  style={{ width: '100%', height: '120px', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#172237', color: '#f8fafc', fontSize: '0.9rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>
+                  Spanish Description / Información (Español)
+                </label>
+                <textarea
+                  value={editDescEs}
+                  onChange={(e) => setEditDescEs(e.target.value)}
+                  placeholder="Ingrese información científica detallada, usos, beneficios y detalles de investigación en español..."
+                  style={{ width: '100%', height: '120px', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#172237', color: '#f8fafc', fontSize: '0.9rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button
+                  className="admin-btn"
+                  onClick={() => setEditDescModalOpen(false)}
+                  style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="admin-btn admin-btn-primary"
+                  onClick={() => {
+                    handleCellChange(editDescProduct.id, 'descriptionEn', editDescEn);
+                    handleCellChange(editDescProduct.id, 'descriptionEs', editDescEs);
+                    setEditDescModalOpen(false);
+                  }}
+                >
+                  Apply & Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
