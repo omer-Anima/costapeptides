@@ -704,14 +704,6 @@ export default function CatalogPage() {
 
           {/* Trust Seals */}
           <div className="trust-badges-container">
-            <a href="https://www.trustpilot.com/review/peptidescostarica.net" target="_blank" rel="noopener noreferrer" className="trust-badge trustpilot">
-              <span className="tp-star-box"><Star size={10} fill="white" color="white" /></span>
-              <div className="trust-text">
-                <span className="trust-score">Trustpilot</span>
-                <span className="trust-desc">5.0 • {lang === 'en' ? 'Excellent' : 'Excelente'}</span>
-              </div>
-            </a>
-
             <a href="https://maps.app.goo.gl/RtDYM6HJz1Qwdkip7" target="_blank" rel="noopener noreferrer" className="trust-badge google-maps">
               <svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
